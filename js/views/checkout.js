@@ -78,7 +78,11 @@ async function scanAdd(view) {
   const p = await getProductByBarcode(code);
   if (!p) {
     toast("未找到该条码商品，请先建档", "err");
-    editProduct(view, { barcode: code });
+    editProduct(view, { barcode: code }, (saved) => {
+      addToCart(saved);
+      paint(view);
+      toast(`已建档并加入：${saved.name}`, "ok");
+    });
     return;
   }
   addToCart(p);

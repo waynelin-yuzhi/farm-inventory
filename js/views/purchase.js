@@ -93,7 +93,11 @@ async function scanAdd(view, suppliers) {
   const p = await getProductByBarcode(code);
   if (!p) {
     toast("新条码，请先建档", "");
-    editProduct(view, { barcode: code });
+    editProduct(view, { barcode: code }, (saved) => {
+      addToDraft(saved);
+      paint(view, suppliers);
+      toast(`已建档并加入：${saved.name}`, "ok");
+    });
     return;
   }
   addToDraft(p);

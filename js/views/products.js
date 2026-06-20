@@ -62,7 +62,7 @@ async function openScanFlow(view) {
   }
 }
 
-export function editProduct(view, p) {
+export function editProduct(view, p, onSaved) {
   p = p || {};
   const isNew = !p.id;
   const get = {};
@@ -91,12 +91,13 @@ export function editProduct(view, p) {
       h("button", { class: "btn btn-primary btn-block", onclick: async () => {
         if (!get.name.value.trim()) return toast("请填写名称", "err");
         try {
-          await upsertProduct({
+          const saved = await upsertProduct({
             id: p.id, barcode: get.barcode.value.trim(), name: get.name.value.trim(),
             sale_price: get.sale_price.value, unit: get.unit.value.trim() || "件",
             category: get.category.value.trim(), reorder_level: get.reorder_level.value, note: get.note.value.trim(),
           });
-          toast("已保存", "ok"); close(); refresh(view);
+          toast("已保存", "ok"); close();
+          if (onSaved) onSaved(saved); else refresh(view);
         } catch (e) { toast(e.message || "保存失败", "err"); }
       } }, "保存"),
       !isNew && h("button", { class: "btn btn-danger btn-block", onclick: async () => {
