@@ -4,8 +4,8 @@
 //   SUPABASE_ANON_KEY：anon / public 那把 key（可公开，配合 RLS 使用）
 // 填好后保存即可，无需打包构建。
 // ============================================================
-export const SUPABASE_URL = "https://YOUR-PROJECT.supabase.co";
-export const SUPABASE_ANON_KEY = "YOUR-ANON-KEY";
+export const SUPABASE_URL = "https://llzfahmkbbdpyvdljecq.supabase.co";
+export const SUPABASE_ANON_KEY = "sb_publishable_JtXj3wt-jjm0WFxfS1wDaQ_VGFPYqG1";
 
 export const isConfigured = () =>
   SUPABASE_URL.startsWith("https://") &&
