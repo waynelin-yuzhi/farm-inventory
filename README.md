@@ -84,3 +84,26 @@ export const SUPABASE_ANON_KEY = "你的 anon key";
 - 暂未做销售单/进货单的详情查看与退货、库存盘点调整界面（数据已留 `stock_movements` 流水，便于扩展）。
 - 称重商品目前手动输入重量；如需对接电子秤条码（含重量/金额）可再加解析。
 - 未接入公开商品库联网带名，新条码需手动建档一次（农产品命中率低，更可控）。
+
+---
+
+## 五、下一阶段规划：LIFF + LINE 登入（已确认，暂未实作）
+
+未来把这套 App 搬进 **LINE 官方帐号**，以 LINE 身分登入并依 ID 赋予权限。主体程式不动，只需新增「登入模组 + 后端身分交换 + 权限表」三块。
+
+**权限：老闆 / 员工 两层**
+
+| 角色 | 结帐 | 进货 | 改商品·售价 | 看报表·授权管理 |
+|---|---|---|---|---|
+| 老闆 owner | ✅ | ✅ | ✅ | ✅ |
+| 员工 staff | ✅ | ✅ | — | — |
+
+**预计改动**
+
+1. 登入改用 LIFF：`liff.init()` → `liff.getIDToken()` 取得 LINE ID Token，取代现在的 email/密码登入页。
+2. 新增 Supabase **Edge Function**：验证 LINE ID Token → 查 `app_users(line_user_id, role, active)` → 签发带 `app_role` claim 的 Supabase session。
+3. 收紧 RLS：由「登入即全开」改为依 `app_role` 分权（员工不可改售价/不可看报表与授权）。
+4. 扫码沿用现成 `getUserMedia`+ZXing（LIFF 内建浏览器可用）；`liff.scanCodeV2()` 作为有就用的加速路径（iOS 支援不稳，故仅当后备）。
+5. LINE Developers：建 LINE Login channel + LIFF app（endpoint 指向托管网址、size=Full），官方帐号图文选单放按钮开启。
+
+> 先决条件：先让本版在 Supabase 跑通，再进入此阶段；届时需提供 LIFF ID 与 LINE Login channel 资讯。
