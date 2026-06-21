@@ -1,4 +1,6 @@
-import { h, money, num, toast, sheet, field, loading, busy } from "../ui.js";
+import { h, money, num, toast, sheet, field, loading, stepper } from "../ui.js";
+
+const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 import { getProductByBarcode, listProducts, listSuppliers, createPurchase } from "../db.js";
 import { scanBarcode } from "../scanner.js";
 import { editProduct } from "./products.js";
@@ -100,31 +102,45 @@ async function scanAdd(view, suppliers) {
   const code = await scanBarcode();
   if (!code) return;
 
-  // 阶段1：查本店库存（置中转圈彈窗）
-  const b = busy("① 查詢本店庫存…");
+  const sp = stepper(["本店庫存", "公開資料庫", "結果"], { title: "掃碼建檔" });
+
+  // 第一格：查本店库存
+  sp.go(0);
+  await delay(450);
   const p = await getProductByBarcode(code);
   if (p) {
-    b.remove();
-    toast(`本店已有：${p.name}，已加入明細`, "ok");
     addToDraft(p);
     paint(view, suppliers);
+    sp.result(2, true, `本店已有「${p.name}」，已加入明細`);
+    sp.action("好，去調整數量", () => sp.close());
     return;
   }
 
-  // 阶段2：本店没有 → 查免费公开资料库
-  b.update("② 查詢公開資料庫…（約 1~2 秒）");
+  // 第二格：查免费公开资料库
+  sp.go(1);
+  await delay(300);
   const info = await lookupBarcode(code);
-  b.remove();
-  toast(info ? `公開資料庫帶入：${info.name}` : "公開資料庫查不到，請手填", info ? "ok" : "err");
 
-  editProduct(view, {
-    barcode: code, name: info?.name || "", category: info?.category || "",
-    _source: info ? "📥 名稱來自公開資料庫，可修改" : "✍️ 公開資料庫查不到，請手動填寫",
-  }, (saved) => {
-    addToDraft(saved);
-    paint(view, suppliers);
-    toast(`已建檔並加入：${saved.name}`, "ok");
-  });
+  const openForm = () => {
+    sp.close();
+    editProduct(view, {
+      barcode: code, name: info?.name || "", category: info?.category || "",
+      _source: info ? "📥 名稱來自公開資料庫，可修改" : "✍️ 公開資料庫查不到，請手動填寫",
+    }, (saved) => {
+      addToDraft(saved);
+      paint(view, suppliers);
+      toast(`已建檔並加入：${saved.name}`, "ok");
+    });
+  };
+
+  // 第三格：结果 + 引导下一步
+  if (info) {
+    sp.result(2, true, `已帶入「${info.name}」`);
+    sp.action("填寫售價後儲存 →", openForm);
+  } else {
+    sp.result(2, false, "公開資料庫查不到此商品");
+    sp.action("手動填寫名稱售價 →", openForm);
+  }
 }
 
 // 手動新增商品（沒有條碼的農產品用這個），建檔後直接進明細

@@ -43,6 +43,46 @@ export function busy(msg) {
   };
 }
 
+// 三段式步骤进度条彈窗：由左到右一格一格走，最后一点是结果，并给「下一步」按钮
+// labels 例：["本店庫存","公開資料庫","結果"]
+export function stepper(labels, opts = {}) {
+  const n = labels.length;
+  const track = h("div", { class: "bar-track" });
+  const fill = h("div", { class: "bar-fill" });
+  const left = 50 / n;
+  track.style.left = left + "%"; track.style.width = ((n - 1) / n * 100) + "%";
+  fill.style.left = left + "%";
+
+  const steps = labels.map((lab, i) => h("div", { class: "step" }, [h("div", { class: "dot" }, String(i + 1)), h("div", { class: "lbl" }, lab)]));
+  const bar = h("div", { class: "stepper" }, [track, fill, ...steps]);
+  const hint = h("div", { class: "stepper-hint" }, "");
+  const actions = h("div", { class: "stepper-actions" });
+  const overlay = h("div", { class: "busy-overlay" }, h("div", { class: "busy-card stepper-card" },
+    [opts.title && h("div", { class: "busy-text" }, opts.title), bar, hint, actions]));
+  document.getElementById("modal-root").append(overlay);
+
+  const setDot = (i, cls, txt) => { steps[i].className = "step " + cls; steps[i].querySelector(".dot").textContent = txt; };
+  const setFill = (i) => { fill.style.width = (i / n * 100) + "%"; };
+
+  return {
+    go(i) {
+      for (let k = 0; k < i; k++) setDot(k, "done", "✓");
+      setDot(i, "active", String(i + 1));
+      for (let k = i + 1; k < n; k++) setDot(k, "", String(k + 1));
+      setFill(i);
+    },
+    result(i, ok, hintText) {
+      for (let k = 0; k < i; k++) setDot(k, "done", "✓");
+      setDot(i, ok ? "done" : "error", ok ? "✓" : "✕");
+      setFill(i);
+      hint.textContent = hintText || "";
+      hint.style.color = ok ? "var(--green-d)" : "var(--danger)";
+    },
+    action(label, cb) { actions.append(h("button", { class: "btn btn-primary btn-block", onclick: cb }, label)); },
+    close() { overlay.remove(); },
+  };
+}
+
 // 底部弹窗。renderBody(closeFn) 返回 DOM 节点。
 export function sheet(title, renderBody) {
   const root = document.getElementById("modal-root");
