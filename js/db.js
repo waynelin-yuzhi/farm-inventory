@@ -101,3 +101,11 @@ export async function dashboardStats() {
 export async function recentSales(limit = 15) {
   return unwrap(await supabase.from("sales").select("*").order("sale_date", { ascending: false }).limit(limit));
 }
+
+// 查单笔销售的明细（含商品名称/单位）
+export async function getSaleDetail(saleId) {
+  return unwrap(await supabase
+    .from("sale_items")
+    .select("qty, unit_price, subtotal, products(name, unit)")
+    .eq("sale_id", saleId));
+}

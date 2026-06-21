@@ -153,12 +153,27 @@ function cartTotal() {
 }
 
 async function checkout(view) {
-  sheet("結帳", (close) => {
+  sheet("結帳確認", (close) => {
     const methods = ["現金", "LINE Pay", "信用卡", "悠遊卡", "行動支付"];
     const sel = h("select", {}, methods.map((m) => h("option", { value: m }, m)));
     sel.value = "現金";
+
+    // 明细确认
+    const lines = [...cart.values()].map((i) => h("div", { class: "list-item" }, [
+      h("div", { class: "grow" }, [
+        h("div", { class: "title" }, i.product.name),
+        h("div", { class: "sub" }, `${num(i.qty)} ${i.product.unit} × ${money(i.unit_price)}`),
+      ]),
+      h("div", { class: "price" }, money(i.qty * i.unit_price)),
+    ]));
+
     return h("div", {}, [
-      h("p", { class: "section-title" }, `共 ${cart.size} 種商品，合計 ${money(cartTotal())}`),
+      h("div", { class: "section-title" }, `明細（${cart.size} 項）`),
+      ...lines,
+      h("div", { class: "list-item", style: "font-weight:800" }, [
+        h("div", { class: "grow" }, "總金額"),
+        h("div", { class: "price", style: "font-size:22px" }, money(cartTotal())),
+      ]),
       field("收款方式", sel),
       h("button", { class: "btn btn-primary btn-block", onclick: async () => {
         const items = [...cart.values()].map((i) => ({ product_id: i.product.id, qty: i.qty, unit_price: i.unit_price }));
@@ -167,7 +182,8 @@ async function checkout(view) {
           toast("結帳成功，已扣庫存", "ok");
           cart.clear(); close(); paint(view);
         } catch (e) { toast(e.message || "結帳失敗", "err"); }
-      } }, `確認收款 ${money(cartTotal())}`),
+      } }, `確認結帳 ${money(cartTotal())}`),
+      h("button", { class: "btn btn-block", onclick: () => close() }, "返回修改"),
     ]);
   });
 }

@@ -1,5 +1,5 @@
-import { h, money, num, loading } from "../ui.js";
-import { dashboardStats, recentSales } from "../db.js";
+import { h, money, num, sheet, loading } from "../ui.js";
+import { dashboardStats, recentSales, getSaleDetail } from "../db.js";
 
 export async function renderDashboard(view) {
   view.append(loading());
@@ -36,14 +36,34 @@ export async function renderDashboard(view) {
     view.append(h("div", { class: "card", style: "color:var(--muted)" }, "還沒有銷售紀錄"));
   } else {
     for (const s of sales) {
-      view.append(h("div", { class: "list-item" }, [
+      view.append(h("div", { class: "list-item", onclick: () => showSaleDetail(s) }, [
         h("div", { class: "grow" }, [
           h("div", { class: "title" }, money(s.total)),
           h("div", { class: "sub" }, `${fmt(s.sale_date)} · ${s.payment_method || ""}`),
         ]),
+        h("div", { class: "sub" }, "明細 ›"),
       ]));
     }
   }
+}
+
+async function showSaleDetail(s) {
+  let items = [];
+  try { items = await getSaleDetail(s.id); } catch {}
+  sheet("銷售明細", () => h("div", {}, [
+    h("p", { class: "section-title" }, `${fmt(s.sale_date)} · ${s.payment_method || ""}`),
+    ...(items.length ? items.map((it) => h("div", { class: "list-item" }, [
+      h("div", { class: "grow" }, [
+        h("div", { class: "title" }, it.products?.name || "商品"),
+        h("div", { class: "sub" }, `${num(it.qty)} ${it.products?.unit || ""} × ${money(it.unit_price)}`),
+      ]),
+      h("div", { class: "price" }, money(it.subtotal)),
+    ])) : [h("div", { class: "empty" }, "無明細")]),
+    h("div", { class: "list-item", style: "font-weight:800" }, [
+      h("div", { class: "grow" }, "合計"),
+      h("div", { class: "price", style: "font-size:20px" }, money(s.total)),
+    ]),
+  ]));
 }
 
 function stat(num_, lbl) {
