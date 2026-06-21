@@ -32,6 +32,17 @@ export function toast(msg, type = "") {
   setTimeout(() => t.remove(), 2600);
 }
 
+// 可即时更新文字的状态提示：用于分阶段流程（查本店库 → 查公开库 → 结果）
+export function progressToast(msg, type = "") {
+  const el = h("div", { class: "toast " + type }, msg);
+  document.getElementById("toast-root").append(el);
+  return {
+    update(m, t = "") { el.className = "toast " + t; el.textContent = m; },
+    done(m, t = "") { this.update(m, t); setTimeout(() => el.remove(), 2400); },
+    remove() { el.remove(); },
+  };
+}
+
 // 底部弹窗。renderBody(closeFn) 返回 DOM 节点。
 export function sheet(title, renderBody) {
   const root = document.getElementById("modal-root");

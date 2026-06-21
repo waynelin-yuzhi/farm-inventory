@@ -1,4 +1,4 @@
-import { h, money, num, toast, sheet, field, loading } from "../ui.js";
+import { h, money, num, toast, sheet, field, loading, progressToast } from "../ui.js";
 import { getProductByBarcode, listProducts, createSale } from "../db.js";
 import { scanBarcode } from "../scanner.js";
 import { editProduct } from "./products.js";
@@ -79,20 +79,31 @@ function addToCart(product) {
 async function scanAdd(view) {
   const code = await scanBarcode();
   if (!code) return;
+
+  // 阶段1：查本店库存
+  const prog = progressToast("① 查詢本店庫存…");
   const p = await getProductByBarcode(code);
-  if (!p) {
-    toast("新條碼，查詢資料庫…", "");
-    const info = await lookupBarcode(code);
-    editProduct(view, { barcode: code, name: info?.name || "", category: info?.category || "" }, (saved) => {
-      addToCart(saved);
-      paint(view);
-      toast(`已建檔並加入：${saved.name}`, "ok");
-    });
+  if (p) {
+    prog.done(`加入 ${p.name}`, "ok");
+    addToCart(p);
+    paint(view);
     return;
   }
-  addToCart(p);
-  toast(`加入 ${p.name}`, "ok");
-  paint(view);
+
+  // 阶段2：本店没有 → 查免费公开资料库
+  prog.update("② 本店無此商品，查詢公開資料庫…");
+  const info = await lookupBarcode(code);
+  if (info) prog.done(`③ 公開資料庫帶入：${info.name}`, "ok");
+  else prog.done("③ 公開資料庫查不到，請手動填寫名稱", "err");
+
+  editProduct(view, {
+    barcode: code, name: info?.name || "", category: info?.category || "",
+    _source: info ? "📥 名稱來自公開資料庫，可修改" : "✍️ 公開資料庫查不到，請手動填寫",
+  }, (saved) => {
+    addToCart(saved);
+    paint(view);
+    toast(`已建檔並加入：${saved.name}`, "ok");
+  });
 }
 
 async function searchAdd(view) {

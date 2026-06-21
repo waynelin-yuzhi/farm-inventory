@@ -60,6 +60,7 @@ export function editProduct(view, p, onSaved) {
     get.barcode = barcodeInput;
 
     const body = h("div", {}, [
+      isNew && p._source && h("p", { class: "section-title", style: "color:var(--green-d)" }, p._source),
       field("條碼", h("div", { class: "row" }, [
         barcodeInput,
         h("button", { class: "btn btn-sm", style: "flex:0 0 auto", onclick: async () => {
