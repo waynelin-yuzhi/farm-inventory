@@ -39,8 +39,11 @@ function paint(view, suppliers) {
 
   view.append(h("div", { class: "row", style: "margin-top:6px" }, [
     h("button", { class: "btn", onclick: () => searchAdd(view, suppliers) }, "🔎 搜尋加入"),
-    draft.size > 0 && h("button", { class: "btn", onclick: () => { draft.clear(); paint(view, suppliers); } }, "🗑 清空"),
+    h("button", { class: "btn", onclick: () => manualAdd(view, suppliers) }, "＋ 新增商品"),
   ]));
+  if (draft.size > 0) {
+    view.append(h("button", { class: "btn btn-block", style: "margin-top:8px", onclick: () => { draft.clear(); paint(view, suppliers); } }, "🗑 清空"));
+  }
 
   // 底部留白，避免最後一項被結算列遮住
   view.append(h("div", { style: "height:84px" }));
@@ -109,6 +112,15 @@ async function scanAdd(view, suppliers) {
   }
   addToDraft(p);
   paint(view, suppliers);
+}
+
+// 手動新增商品（沒有條碼的農產品用這個），建檔後直接進明細
+function manualAdd(view, suppliers) {
+  editProduct(view, {}, (saved) => {
+    addToDraft(saved);
+    paint(view, suppliers);
+    toast(`已建檔並加入：${saved.name}`, "ok");
+  });
 }
 
 async function searchAdd(view, suppliers) {

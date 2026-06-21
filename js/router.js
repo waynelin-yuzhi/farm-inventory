@@ -8,7 +8,7 @@ const routes = {
   dashboard: { title: "總覽", render: renderDashboard },
   checkout: { title: "結帳", render: renderCheckout },
   purchase: { title: "進貨", render: renderPurchase },
-  products: { title: "商品資料庫", render: renderProducts },
+  products: { title: "庫存", render: renderProducts },
   suppliers: { title: "廠商", render: renderSuppliers },
 };
 
