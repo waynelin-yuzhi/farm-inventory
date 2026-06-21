@@ -2,6 +2,7 @@ import { h, money, num, toast, sheet, field, loading } from "../ui.js";
 import { getProductByBarcode, listProducts, createSale } from "../db.js";
 import { scanBarcode } from "../scanner.js";
 import { editProduct } from "./products.js";
+import { lookupBarcode } from "../lookup.js";
 
 // 購物車：product_id -> { product, qty, unit_price }
 let cart = new Map();
@@ -80,8 +81,9 @@ async function scanAdd(view) {
   if (!code) return;
   const p = await getProductByBarcode(code);
   if (!p) {
-    toast("找不到此條碼商品，請先建檔", "err");
-    editProduct(view, { barcode: code }, (saved) => {
+    toast("新條碼，查詢資料庫…", "");
+    const info = await lookupBarcode(code);
+    editProduct(view, { barcode: code, name: info?.name || "", category: info?.category || "" }, (saved) => {
       addToCart(saved);
       paint(view);
       toast(`已建檔並加入：${saved.name}`, "ok");

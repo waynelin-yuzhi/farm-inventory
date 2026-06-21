@@ -1,6 +1,7 @@
 import { h, money, num, toast, sheet, field, confirmDialog, loading } from "../ui.js";
 import { listProducts, upsertProduct, deleteProduct, getProductByBarcode } from "../db.js";
 import { scanBarcode } from "../scanner.js";
+import { lookupBarcode } from "../lookup.js";
 
 export async function renderProducts(view) {
   view.append(loading());
@@ -53,9 +54,12 @@ async function openScanFlow(view) {
   if (existing) {
     toast("此條碼已存在，開啟編輯", "");
     editProduct(view, existing);
-  } else {
-    editProduct(view, { barcode: code });
+    return;
   }
+  toast("查詢公開資料庫…", "");
+  const info = await lookupBarcode(code);
+  if (info) toast(`已帶入：${info.name}`, "ok");
+  editProduct(view, { barcode: code, name: info?.name || "", category: info?.category || "" });
 }
 
 export function editProduct(view, p, onSaved) {

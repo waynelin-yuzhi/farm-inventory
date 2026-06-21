@@ -2,6 +2,7 @@ import { h, money, num, toast, sheet, field, loading } from "../ui.js";
 import { getProductByBarcode, listProducts, listSuppliers, createPurchase } from "../db.js";
 import { scanBarcode } from "../scanner.js";
 import { editProduct } from "./products.js";
+import { lookupBarcode } from "../lookup.js";
 
 // 進貨單草稿：product_id -> { product, qty, unit_cost }
 let draft = new Map();
@@ -97,8 +98,9 @@ async function scanAdd(view, suppliers) {
   if (!code) return;
   const p = await getProductByBarcode(code);
   if (!p) {
-    toast("新條碼，請先建檔", "");
-    editProduct(view, { barcode: code }, (saved) => {
+    toast("新條碼，查詢資料庫…", "");
+    const info = await lookupBarcode(code);
+    editProduct(view, { barcode: code, name: info?.name || "", category: info?.category || "" }, (saved) => {
       addToDraft(saved);
       paint(view, suppliers);
       toast(`已建檔並加入：${saved.name}`, "ok");
