@@ -26,34 +26,37 @@ function paint(view, suppliers) {
     [h("option", { value: "" }, "（不指定廠商）"), ...suppliers.map((s) => h("option", { value: s.id }, s.name))]);
   supplierSel.value = supplierId;
   const dateInput = h("input", { type: "date", value: purchaseDate, onchange: (e) => (purchaseDate = e.target.value) });
-
   view.append(h("div", { class: "card" }, [
     h("div", { class: "row" }, [field("廠商", supplierSel), field("進貨日期", dateInput)]),
   ]));
 
-  view.append(h("div", { class: "section-title" }, "進貨明細"));
+  // 加入商品（三種方式集中在上方，与下方明细/入库分开）
+  view.append(h("div", { class: "section-title" }, "加入商品"));
+  view.append(h("div", { class: "row" }, [
+    h("button", { class: "btn btn-primary", onclick: () => scanAdd(view, suppliers) }, "📷 掃碼"),
+    h("button", { class: "btn", onclick: () => searchAdd(view, suppliers) }, "🔎 搜尋"),
+    h("button", { class: "btn", onclick: () => manualAdd(view, suppliers) }, "＋ 新增"),
+  ]));
+
+  // 明细标题（清空缩小移到右侧，不与入库混）
+  view.append(h("div", { class: "section-title", style: "display:flex;justify-content:space-between;align-items:center;margin-top:14px" }, [
+    h("span", {}, `進貨明細（${draft.size}）`),
+    draft.size > 0 && h("button", {
+      style: "background:transparent;border:none;color:var(--danger);font-size:13px;padding:4px 6px;cursor:pointer",
+      onclick: () => { draft.clear(); paint(view, suppliers); },
+    }, "清空"),
+  ]));
 
   if (draft.size === 0) {
-    view.append(h("div", { class: "empty" }, "掃碼或搜尋加入要進貨的商品，並填寫數量與成本"));
+    view.append(h("div", { class: "empty" }, "用上方「掃碼／搜尋／新增」加入商品，再填數量與成本"));
   } else {
     for (const item of draft.values()) view.append(purchaseLine(view, item, suppliers));
   }
 
-  view.append(h("div", { class: "row", style: "margin-top:6px" }, [
-    h("button", { class: "btn", onclick: () => searchAdd(view, suppliers) }, "🔎 搜尋加入"),
-    h("button", { class: "btn", onclick: () => manualAdd(view, suppliers) }, "＋ 新增商品"),
-  ]));
-  if (draft.size > 0) {
-    view.append(h("button", { class: "btn btn-block", style: "margin-top:8px", onclick: () => { draft.clear(); paint(view, suppliers); } }, "🗑 清空"));
-  }
+  // 底部留白
+  view.append(h("div", { style: "height:80px" }));
 
-  // 底部留白，避免最後一項被結算列遮住
-  view.append(h("div", { style: "height:84px" }));
-
-  // 右下角懸浮掃碼鈕（浮在結算列上方，不被遮住）
-  view.append(h("button", { class: "fab-scan with-bar", onclick: () => scanAdd(view, suppliers) }, ["📷 掃碼"]));
-
-  // 底部結算列
+  // 底部唯一主要動作：入庫
   const total = draftTotal();
   view.append(h("div", { class: "bottom-bar" }, [
     h("div", { class: "total" }, money(total)),

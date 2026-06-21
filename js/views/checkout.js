@@ -17,36 +17,37 @@ export async function renderCheckout(view) {
 function paint(view) {
   view.innerHTML = "";
 
-  const lines = h("div", {});
+  // 加入商品（集中上方）
+  view.append(h("div", { class: "section-title" }, "加入商品"));
+  view.append(h("div", { class: "row" }, [
+    h("button", { class: "btn btn-primary", onclick: () => scanAdd(view) }, "📷 掃碼"),
+    h("button", { class: "btn", onclick: () => searchAdd(view) }, "🔎 搜尋"),
+  ]));
+
+  // 购物车标题（清空缩小移到右侧，不与结帐混）
+  view.append(h("div", { class: "section-title", style: "display:flex;justify-content:space-between;align-items:center;margin-top:14px" }, [
+    h("span", {}, `購物車（${cart.size}）`),
+    cart.size > 0 && h("button", {
+      style: "background:transparent;border:none;color:var(--danger);font-size:13px;padding:4px 6px;cursor:pointer",
+      onclick: () => { cart.clear(); paint(view); },
+    }, "清空"),
+  ]));
+
   if (cart.size === 0) {
-    lines.append(h("div", { class: "empty" }, "購物車空 — 掃碼或搜尋把商品加進來"));
+    view.append(h("div", { class: "empty" }, "用上方「掃碼／搜尋」把商品加進來"));
   } else {
-    for (const item of cart.values()) lines.append(cartLine(view, item));
+    for (const item of cart.values()) view.append(cartLine(view, item));
   }
-  view.append(lines);
 
-  // 操作按鈕
-  view.append(
-    h("div", { class: "row", style: "margin-top:6px" }, [
-      h("button", { class: "btn", onclick: () => searchAdd(view) }, "🔎 搜尋加入"),
-      cart.size > 0 && h("button", { class: "btn", onclick: () => { cart.clear(); paint(view); } }, "🗑 清空"),
-    ])
-  );
+  // 底部留白
+  view.append(h("div", { style: "height:80px" }));
 
-  // 底部留白，避免最後一項被結算列遮住
-  view.append(h("div", { style: "height:84px" }));
-
-  // 右下角懸浮掃碼鈕（浮在結算列上方，不被遮住）
-  view.append(h("button", { class: "fab-scan with-bar", onclick: () => scanAdd(view) }, ["📷 掃碼"]));
-
-  // 底部結帳列
+  // 底部唯一主要動作：結帳
   const total = cartTotal();
-  view.append(
-    h("div", { class: "bottom-bar" }, [
-      h("div", { class: "total" }, money(total)),
-      h("button", { class: "btn btn-primary", style: "flex:0 0 auto", disabled: cart.size === 0, onclick: () => checkout(view) }, "結帳"),
-    ])
-  );
+  view.append(h("div", { class: "bottom-bar" }, [
+    h("div", { class: "total" }, money(total)),
+    h("button", { class: "btn btn-primary", style: "flex:0 0 auto", disabled: cart.size === 0, onclick: () => checkout(view) }, "結帳"),
+  ]));
 }
 
 function cartLine(view, item) {
