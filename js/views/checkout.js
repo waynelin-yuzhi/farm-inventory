@@ -1,4 +1,4 @@
-import { h, money, num, toast, sheet, field, loading, progressToast } from "../ui.js";
+import { h, money, num, toast, sheet, field, loading, busy } from "../ui.js";
 import { getProductByBarcode, listProducts, createSale } from "../db.js";
 import { scanBarcode } from "../scanner.js";
 import { editProduct } from "./products.js";
@@ -80,21 +80,22 @@ async function scanAdd(view) {
   const code = await scanBarcode();
   if (!code) return;
 
-  // 阶段1：查本店库存
-  const prog = progressToast("① 查詢本店庫存…");
+  // 阶段1：查本店库存（置中转圈彈窗）
+  const b = busy("① 查詢本店庫存…");
   const p = await getProductByBarcode(code);
   if (p) {
-    prog.done(`加入 ${p.name}`, "ok");
+    b.remove();
+    toast(`加入 ${p.name}`, "ok");
     addToCart(p);
     paint(view);
     return;
   }
 
   // 阶段2：本店没有 → 查免费公开资料库
-  prog.update("② 本店無此商品，查詢公開資料庫…");
+  b.update("② 查詢公開資料庫…（約 1~2 秒）");
   const info = await lookupBarcode(code);
-  if (info) prog.done(`③ 公開資料庫帶入：${info.name}`, "ok");
-  else prog.done("③ 公開資料庫查不到，請手動填寫名稱", "err");
+  b.remove();
+  toast(info ? `公開資料庫帶入：${info.name}` : "公開資料庫查不到，請手填", info ? "ok" : "err");
 
   editProduct(view, {
     barcode: code, name: info?.name || "", category: info?.category || "",

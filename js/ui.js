@@ -32,14 +32,14 @@ export function toast(msg, type = "") {
   setTimeout(() => t.remove(), 2600);
 }
 
-// 可即时更新文字的状态提示：用于分阶段流程（查本店库 → 查公开库 → 结果）
-export function progressToast(msg, type = "") {
-  const el = h("div", { class: "toast " + type }, msg);
-  document.getElementById("toast-root").append(el);
+// 画面正中央的「查询中」转圈彈窗，文字可即时更新（查本店库 → 查公开库）
+export function busy(msg) {
+  const text = h("div", { class: "busy-text" }, msg);
+  const overlay = h("div", { class: "busy-overlay" }, h("div", { class: "busy-card" }, [h("div", { class: "spinner" }), text]));
+  document.getElementById("modal-root").append(overlay);
   return {
-    update(m, t = "") { el.className = "toast " + t; el.textContent = m; },
-    done(m, t = "") { this.update(m, t); setTimeout(() => el.remove(), 2400); },
-    remove() { el.remove(); },
+    update(m) { text.textContent = m; },
+    remove() { overlay.remove(); },
   };
 }
 

@@ -1,6 +1,6 @@
 // Service Worker：開發/迭代期採「網路優先」，確保更新能即時送達。
 // 連不上網時才用快取（仍可離線開啟介面）。改版時提升 CACHE 版本號。
-const CACHE = "farm-inv-v6";
+const CACHE = "farm-inv-v7";
 const SHELL = [
   "./",
   "./index.html",
