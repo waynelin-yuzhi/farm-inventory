@@ -29,7 +29,7 @@ export function scanBarcode() {
     const finish = (code) => { cleanup(); resolve(code); };
     const onCancel = () => finish(null);
     const onManual = () => {
-      const code = window.prompt("请输入条码：");
+      const code = window.prompt("請輸入條碼：");
       finish(code && code.trim() ? code.trim() : null);
     };
 
@@ -70,7 +70,7 @@ export function scanBarcode() {
         }
       } catch (err) {
         cleanup();
-        const code = window.prompt("无法打开摄像头（需 HTTPS 并授权）。可手动输入条码：");
+        const code = window.prompt("無法開啟相機（需 HTTPS 並授權）。可手動輸入條碼：");
         resolve(code && code.trim() ? code.trim() : null);
       }
     };

@@ -17,7 +17,10 @@ export function h(tag, attrs = {}, children = []) {
   return el;
 }
 
-export const money = (n) => "¥" + Number(n || 0).toFixed(2);
+export const money = (n) => {
+  const x = Number(n || 0);
+  return "NT$" + (Number.isInteger(x) ? String(x) : x.toFixed(2));
+};
 export const num = (n) => {
   const x = Number(n || 0);
   return Number.isInteger(x) ? String(x) : x.toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
@@ -47,7 +50,7 @@ export async function confirmDialog(title, message) {
         h("p", { class: "section-title" }, message),
         h("div", { class: "row" }, [
           h("button", { class: "btn btn-block", onclick: () => { done(); resolve(false); } }, "取消"),
-          h("button", { class: "btn btn-danger btn-block", onclick: () => { done(); resolve(true); } }, "确定"),
+          h("button", { class: "btn btn-danger btn-block", onclick: () => { done(); resolve(true); } }, "確定"),
         ]),
       ])
     );
@@ -59,5 +62,5 @@ export function field(label, inputEl) {
 }
 
 export function loading() {
-  return h("div", { class: "empty" }, "加载中…");
+  return h("div", { class: "empty" }, "載入中…");
 }

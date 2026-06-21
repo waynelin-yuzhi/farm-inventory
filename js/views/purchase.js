@@ -3,7 +3,7 @@ import { getProductByBarcode, listProducts, listSuppliers, createPurchase } from
 import { scanBarcode } from "../scanner.js";
 import { editProduct } from "./products.js";
 
-// 进货单草稿：product_id -> { product, qty, unit_cost }
+// 進貨單草稿：product_id -> { product, qty, unit_cost }
 let draft = new Map();
 let supplierId = "";
 let purchaseDate = todayStr();
@@ -18,35 +18,38 @@ export async function renderPurchase(view) {
 function paint(view, suppliers) {
   view.innerHTML = "";
 
-  // 单头：厂商 + 日期
+  // 單頭：廠商 + 日期
   const supplierSel = h("select", { onchange: (e) => (supplierId = e.target.value) },
-    [h("option", { value: "" }, "（不指定厂商）"), ...suppliers.map((s) => h("option", { value: s.id }, s.name))]);
+    [h("option", { value: "" }, "（不指定廠商）"), ...suppliers.map((s) => h("option", { value: s.id }, s.name))]);
   supplierSel.value = supplierId;
   const dateInput = h("input", { type: "date", value: purchaseDate, onchange: (e) => (purchaseDate = e.target.value) });
 
   view.append(h("div", { class: "card" }, [
-    h("div", { class: "row" }, [field("厂商", supplierSel), field("进货日期", dateInput)]),
+    h("div", { class: "row" }, [field("廠商", supplierSel), field("進貨日期", dateInput)]),
   ]));
 
-  view.append(h("div", { class: "section-title" }, "进货明细"));
+  view.append(h("div", { class: "section-title" }, "進貨明細"));
 
   if (draft.size === 0) {
-    view.append(h("div", { class: "empty" }, "扫码或搜索添加要进货的商品，并填写数量与成本"));
+    view.append(h("div", { class: "empty" }, "掃碼或搜尋加入要進貨的商品，並填寫數量與成本"));
   } else {
     for (const item of draft.values()) view.append(purchaseLine(view, item, suppliers));
   }
 
   view.append(h("div", { class: "row", style: "margin-top:6px" }, [
-    h("button", { class: "btn", onclick: () => searchAdd(view, suppliers) }, "🔎 搜索添加"),
+    h("button", { class: "btn", onclick: () => searchAdd(view, suppliers) }, "🔎 搜尋加入"),
     draft.size > 0 && h("button", { class: "btn", onclick: () => { draft.clear(); paint(view, suppliers); } }, "🗑 清空"),
   ]));
 
-  view.append(h("button", { class: "fab-scan", onclick: () => scanAdd(view, suppliers) }, ["📷 扫码进货"]));
+  // 底部留白，避免最後一項被結算列遮住
+  view.append(h("div", { style: "height:84px" }));
 
+  // 底部結算列（掃碼鈕內嵌，不再被遮住）
   const total = draftTotal();
   view.append(h("div", { class: "bottom-bar" }, [
+    h("button", { class: "btn btn-primary", style: "flex:0 0 auto", onclick: () => scanAdd(view, suppliers) }, "📷 掃碼"),
     h("div", { class: "total" }, money(total)),
-    h("button", { class: "btn btn-primary", disabled: draft.size === 0, onclick: () => submit(view, suppliers) }, "入库"),
+    h("button", { class: "btn btn-primary", style: "flex:0 0 auto", disabled: draft.size === 0, onclick: () => submit(view, suppliers) }, "入庫"),
   ]));
 }
 
@@ -60,14 +63,14 @@ function purchaseLine(view, item) {
     h("div", { class: "list-item", style: "box-shadow:none;padding:0;margin:0 0 8px;background:none" }, [
       h("div", { class: "grow" }, [
         h("div", { class: "title" }, item.product.name),
-        h("div", { class: "sub" }, `当前库存 ${num(item.product.stock)} ${item.product.unit} · 上次成本 ${money(item.product.last_cost)}`),
+        h("div", { class: "sub" }, `目前庫存 ${num(item.product.stock)} ${item.product.unit} · 上次成本 ${money(item.product.last_cost)}`),
       ]),
       h("button", { class: "btn btn-sm", onclick: () => { draft.delete(item.product.id); paint(view); } }, "移除"),
     ]),
     h("div", { class: "row" }, [
-      field(`数量(${item.product.unit})`, qty),
-      field("进货单价", cost),
-      h("div", { class: "field" }, [h("label", {}, "小计"), h("div", { class: "price", style: "padding-top:10px", id: "sub-" + item.product.id }, money(lineSubtotal(item)))]),
+      field(`數量(${item.product.unit})`, qty),
+      field("進貨單價", cost),
+      h("div", { class: "field" }, [h("label", {}, "小計"), h("div", { class: "price", style: "padding-top:10px", id: "sub-" + item.product.id }, money(lineSubtotal(item)))]),
     ]),
   ]);
 }
@@ -83,7 +86,7 @@ const lineSubtotal = (i) => Number(i.qty || 0) * Number(i.unit_cost || 0);
 function draftTotal() { let t = 0; for (const i of draft.values()) t += lineSubtotal(i); return t; }
 
 function addToDraft(product) {
-  if (draft.has(product.id)) { toast("已在明细中", ""); return; }
+  if (draft.has(product.id)) { toast("已在明細中", ""); return; }
   draft.set(product.id, { product, qty: 1, unit_cost: Number(product.last_cost) || "" });
 }
 
@@ -92,11 +95,11 @@ async function scanAdd(view, suppliers) {
   if (!code) return;
   const p = await getProductByBarcode(code);
   if (!p) {
-    toast("新条码，请先建档", "");
+    toast("新條碼，請先建檔", "");
     editProduct(view, { barcode: code }, (saved) => {
       addToDraft(saved);
       paint(view, suppliers);
-      toast(`已建档并加入：${saved.name}`, "ok");
+      toast(`已建檔並加入：${saved.name}`, "ok");
     });
     return;
   }
@@ -106,16 +109,16 @@ async function scanAdd(view, suppliers) {
 
 async function searchAdd(view, suppliers) {
   const products = await listProducts();
-  sheet("选择商品", (close) => {
-    const box = h("input", { placeholder: "输入名称筛选", style: "width:100%;padding:12px;border:1px solid var(--border);border-radius:11px;margin-bottom:10px;background:#fafbfa" });
+  sheet("選擇商品", (close) => {
+    const box = h("input", { placeholder: "輸入名稱篩選", style: "width:100%;padding:12px;border:1px solid var(--border);border-radius:11px;margin-bottom:10px;background:#fafbfa" });
     const list = h("div", {});
     const draw = (kw = "") => {
       list.innerHTML = "";
       const filtered = products.filter((p) => !kw || (p.name + (p.barcode || "")).toLowerCase().includes(kw.toLowerCase()));
-      if (!filtered.length) { list.append(h("div", { class: "empty" }, "无匹配")); return; }
+      if (!filtered.length) { list.append(h("div", { class: "empty" }, "無符合")); return; }
       for (const p of filtered) {
         list.append(h("div", { class: "list-item", onclick: () => { addToDraft(p); close(); paint(view, suppliers); } }, [
-          h("div", { class: "grow" }, [h("div", { class: "title" }, p.name), h("div", { class: "sub" }, `库存 ${num(p.stock)} ${p.unit}`)]),
+          h("div", { class: "grow" }, [h("div", { class: "title" }, p.name), h("div", { class: "sub" }, `庫存 ${num(p.stock)} ${p.unit}`)]),
         ]));
       }
     };
@@ -128,16 +131,16 @@ async function searchAdd(view, suppliers) {
 async function submit(view, suppliers) {
   const items = [];
   for (const i of draft.values()) {
-    if (!i.qty || i.qty <= 0) return toast(`「${i.product.name}」数量需大于 0`, "err");
-    if (i.unit_cost === "" || i.unit_cost < 0) return toast(`「${i.product.name}」请填写成本`, "err");
+    if (!i.qty || i.qty <= 0) return toast(`「${i.product.name}」數量需大於 0`, "err");
+    if (i.unit_cost === "" || i.unit_cost < 0) return toast(`「${i.product.name}」請填寫成本`, "err");
     items.push({ product_id: i.product.id, qty: Number(i.qty), unit_cost: Number(i.unit_cost) });
   }
   try {
     await createPurchase({ supplier_id: supplierId, date: purchaseDate, note: null, items });
-    toast("已入库，库存与成本已更新", "ok");
+    toast("已入庫，庫存與成本已更新", "ok");
     draft.clear();
     paint(view, suppliers);
-  } catch (e) { toast(e.message || "入库失败", "err"); }
+  } catch (e) { toast(e.message || "入庫失敗", "err"); }
 }
 
 function todayStr() {

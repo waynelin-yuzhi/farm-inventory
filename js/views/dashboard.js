@@ -8,32 +8,32 @@ export async function renderDashboard(view) {
 
   view.append(
     h("div", { class: "stat-grid" }, [
-      stat(money(stats.todayTotal), "今日营业额"),
-      stat(stats.todayOrders, "今日单数"),
-      stat(stats.productCount, "商品种类"),
-      stat(money(stats.inventoryValue), "库存成本估值"),
+      stat(money(stats.todayTotal), "今日營業額"),
+      stat(stats.todayOrders, "今日單數"),
+      stat(stats.productCount, "商品種類"),
+      stat(money(stats.inventoryValue), "庫存成本估值"),
     ])
   );
 
-  // 低库存提醒
-  view.append(h("div", { class: "section-title" }, `库存预警（${stats.low.length}）`));
+  // 低庫存提醒
+  view.append(h("div", { class: "section-title" }, `庫存預警（${stats.low.length}）`));
   if (!stats.low.length) {
-    view.append(h("div", { class: "card", style: "color:var(--muted)" }, "暂无低于预警线的商品 👍"));
+    view.append(h("div", { class: "card", style: "color:var(--muted)" }, "目前沒有低於預警線的商品 👍"));
   } else {
     for (const p of stats.low) {
       view.append(h("div", { class: "list-item" }, [
         h("div", { class: "grow" }, [
-          h("div", { class: "title" }, [p.name, h("span", { class: "tag " + (Number(p.stock) <= 0 ? "out" : "low") }, Number(p.stock) <= 0 ? "缺货" : "偏低")]),
-          h("div", { class: "sub" }, `库存 ${num(p.stock)} / 预警线 ${num(p.reorder_level)} ${p.unit}`),
+          h("div", { class: "title" }, [p.name, h("span", { class: "tag " + (Number(p.stock) <= 0 ? "out" : "low") }, Number(p.stock) <= 0 ? "缺貨" : "偏低")]),
+          h("div", { class: "sub" }, `庫存 ${num(p.stock)} / 預警線 ${num(p.reorder_level)} ${p.unit}`),
         ]),
       ]));
     }
   }
 
-  // 最近销售
-  view.append(h("div", { class: "section-title" }, "最近销售"));
+  // 最近銷售
+  view.append(h("div", { class: "section-title" }, "最近銷售"));
   if (!sales.length) {
-    view.append(h("div", { class: "card", style: "color:var(--muted)" }, "还没有销售记录"));
+    view.append(h("div", { class: "card", style: "color:var(--muted)" }, "還沒有銷售紀錄"));
   } else {
     for (const s of sales) {
       view.append(h("div", { class: "list-item" }, [

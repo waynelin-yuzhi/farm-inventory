@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#2e7d32" />
-  <title>农产品小店 · 进销存</title>
+  <title>農產品小店 · 進銷存</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -15,12 +15,12 @@
   <!-- 登录页 -->
   <section id="auth-screen" class="auth-screen hidden">
     <div class="auth-card">
-      <div class="brand">🥬 农产品小店</div>
-      <div class="brand-sub">进销存 · 扫码结账</div>
-      <input id="auth-email" type="email" inputmode="email" autocomplete="username" placeholder="邮箱" />
-      <input id="auth-password" type="password" autocomplete="current-password" placeholder="密码（至少 6 位）" />
-      <button id="auth-login" class="btn btn-primary btn-block">登录</button>
-      <button id="auth-signup" class="btn btn-ghost btn-block">注册新账号</button>
+      <div class="brand">🥬 農產品小店</div>
+      <div class="brand-sub">進銷存 · 掃碼結帳</div>
+      <input id="auth-email" type="email" inputmode="email" autocomplete="username" placeholder="電子郵件" />
+      <input id="auth-password" type="password" autocomplete="current-password" placeholder="密碼（至少 6 位）" />
+      <button id="auth-login" class="btn btn-primary btn-block">登入</button>
+      <button id="auth-signup" class="btn btn-ghost btn-block">註冊新帳號</button>
       <p id="auth-msg" class="auth-msg"></p>
     </div>
   </section>
@@ -28,18 +28,18 @@
   <!-- 主应用 -->
   <div id="app" class="app hidden">
     <header class="topbar">
-      <span id="page-title" class="page-title">总览</span>
-      <button id="logout-btn" class="icon-btn" title="退出登录">⏻</button>
+      <span id="page-title" class="page-title">總覽</span>
+      <button id="logout-btn" class="icon-btn" title="登出">⏻</button>
     </header>
 
     <main id="view" class="view"><!-- 视图渲染区 --></main>
 
     <nav class="tabbar">
-      <a href="#/dashboard" class="tab" data-tab="dashboard"><span>📊</span>总览</a>
-      <a href="#/checkout"  class="tab" data-tab="checkout"><span>🛒</span>结账</a>
-      <a href="#/purchase"  class="tab" data-tab="purchase"><span>📥</span>进货</a>
+      <a href="#/dashboard" class="tab" data-tab="dashboard"><span>📊</span>總覽</a>
+      <a href="#/checkout"  class="tab" data-tab="checkout"><span>🛒</span>結帳</a>
+      <a href="#/purchase"  class="tab" data-tab="purchase"><span>📥</span>進貨</a>
       <a href="#/products"  class="tab" data-tab="products"><span>📦</span>商品</a>
-      <a href="#/suppliers" class="tab" data-tab="suppliers"><span>🏭</span>厂商</a>
+      <a href="#/suppliers" class="tab" data-tab="suppliers"><span>🏭</span>廠商</a>
     </nav>
   </div>
 
@@ -47,9 +47,9 @@
   <div id="scanner-modal" class="scanner-modal hidden">
     <video id="scanner-video" playsinline muted></video>
     <div class="scanner-frame"></div>
-    <div class="scanner-hint">将条码对准框内</div>
-    <button id="scanner-manual" class="btn btn-ghost scanner-manual">手动输入条码</button>
-    <button id="scanner-close" class="btn scanner-close">✕ 关闭</button>
+    <div class="scanner-hint">將條碼對準框內</div>
+    <button id="scanner-manual" class="btn btn-ghost scanner-manual">手動輸入條碼</button>
+    <button id="scanner-close" class="btn scanner-close">✕ 關閉</button>
   </div>
 
   <!-- 通用弹窗 / Toast 容器 -->

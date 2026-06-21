@@ -22,7 +22,7 @@ function showAuth() {
 async function init() {
   if (!isConfigured()) {
     showAuth();
-    authMsg.innerHTML = "⚠️ 还没配置 Supabase。<br>请在 <code>js/config.js</code> 填入项目 URL 与 anon key。";
+    authMsg.innerHTML = "⚠️ 尚未設定 Supabase。<br>請在 <code>js/config.js</code> 填入專案 URL 與 anon key。";
     document.getElementById("auth-login").disabled = true;
     document.getElementById("auth-signup").disabled = true;
     return;
@@ -44,16 +44,16 @@ const pwEl = document.getElementById("auth-password");
 document.getElementById("auth-login").addEventListener("click", async () => {
   authMsg.textContent = "";
   const { error } = await supabase.auth.signInWithPassword({ email: emailEl.value.trim(), password: pwEl.value });
-  if (error) authMsg.textContent = "登录失败：" + error.message;
+  if (error) authMsg.textContent = "登入失敗：" + error.message;
 });
 
 document.getElementById("auth-signup").addEventListener("click", async () => {
   authMsg.textContent = "";
-  if (pwEl.value.length < 6) { authMsg.textContent = "密码至少 6 位"; return; }
+  if (pwEl.value.length < 6) { authMsg.textContent = "密碼至少 6 位"; return; }
   const { data, error } = await supabase.auth.signUp({ email: emailEl.value.trim(), password: pwEl.value });
-  if (error) { authMsg.textContent = "注册失败：" + error.message; return; }
-  if (data.session) toast("注册成功", "ok");
-  else authMsg.textContent = "注册成功，请查收邮箱完成验证后登录（或在 Supabase 关闭邮箱验证）。";
+  if (error) { authMsg.textContent = "註冊失敗：" + error.message; return; }
+  if (data.session) toast("註冊成功", "ok");
+  else authMsg.textContent = "註冊成功，請收信完成驗證後登入（或在 Supabase 關閉信箱驗證）。";
 });
 
 document.getElementById("logout-btn").addEventListener("click", async () => {

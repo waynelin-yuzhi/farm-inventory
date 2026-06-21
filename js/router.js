@@ -5,11 +5,11 @@ import { renderProducts } from "./views/products.js";
 import { renderSuppliers } from "./views/suppliers.js";
 
 const routes = {
-  dashboard: { title: "总览", render: renderDashboard },
-  checkout: { title: "结账", render: renderCheckout },
-  purchase: { title: "进货", render: renderPurchase },
-  products: { title: "商品资料库", render: renderProducts },
-  suppliers: { title: "厂商", render: renderSuppliers },
+  dashboard: { title: "總覽", render: renderDashboard },
+  checkout: { title: "結帳", render: renderCheckout },
+  purchase: { title: "進貨", render: renderPurchase },
+  products: { title: "商品資料庫", render: renderProducts },
+  suppliers: { title: "廠商", render: renderSuppliers },
 };
 
 export function startRouter() {
@@ -34,6 +34,6 @@ async function handleRoute() {
     await route.render(view);
   } catch (err) {
     console.error(err);
-    view.innerHTML = `<div class="empty">出错了：${err.message || err}</div>`;
+    view.innerHTML = `<div class="empty">發生錯誤：${err.message || err}</div>`;
   }
 }
