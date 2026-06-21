@@ -68,7 +68,12 @@ export function editProduct(view, p, onSaved) {
         } }, "📷 掃"),
       ])),
       field("名稱 *", inp("name", { placeholder: "如：高麗菜" })),
-      field("售價 *", inp("sale_price", { type: "number", inputmode: "decimal", placeholder: "0" })),
+      p._wantCost
+        ? h("div", { class: "row" }, [
+            field("售價 *", inp("sale_price", { type: "number", inputmode: "decimal", placeholder: "0" })),
+            field("進貨成本", inp("cost", { type: "number", inputmode: "decimal", placeholder: "本次進貨單價" })),
+          ])
+        : field("售價 *", inp("sale_price", { type: "number", inputmode: "decimal", placeholder: "0" })),
       h("div", { class: "row" }, [
         field("單位", inp("unit", { value: p.unit || "件", placeholder: "件/台斤/公斤" })),
         field("分類", inp("category", { placeholder: "蔬菜/水果" })),
@@ -90,8 +95,11 @@ export function editProduct(view, p, onSaved) {
             const newStock = Number(get.stock.value);
             if (!Number.isNaN(newStock) && newStock !== Number(p.stock)) await adjustStock(p.id, newStock);
           }
+          // 进货情境下顺手填的成本，回传给呼叫端带进明细
+          const meta = {};
+          if (get.cost && get.cost.value !== "") meta.cost = Math.max(0, Number(get.cost.value) || 0);
           toast("已儲存", "ok"); close();
-          if (onSaved) onSaved(saved); else refresh(view);
+          if (onSaved) onSaved(saved, meta); else refresh(view);
         } catch (e) { toast(e.message || "儲存失敗", "err"); }
       } }, "儲存"),
       !isNew && h("button", { class: "btn btn-danger btn-block", onclick: async () => {

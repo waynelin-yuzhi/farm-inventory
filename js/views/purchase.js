@@ -127,10 +127,14 @@ async function scanAdd(view, suppliers) {
   const openForm = () => {
     sp.close();
     editProduct(view, {
-      barcode: code, name: info?.name || "", category: info?.category || "",
+      barcode: code, name: info?.name || "", category: info?.category || "", _wantCost: true,
       _source: info ? "📥 名稱來自公開資料庫，可修改" : "✍️ 公開資料庫查不到，請手動填寫",
-    }, (saved) => {
+    }, (saved, meta) => {
       addToDraft(saved);
+      if (meta && typeof meta.cost === "number") {
+        const line = draft.get(saved.id);
+        if (line) line.unit_cost = meta.cost;
+      }
       paint(view, suppliers);
       toast(`已建檔並加入：${saved.name}`, "ok");
     });
@@ -148,8 +152,12 @@ async function scanAdd(view, suppliers) {
 
 // 手動新增商品（沒有條碼的農產品用這個），建檔後直接進明細
 function manualAdd(view, suppliers) {
-  editProduct(view, { _source: "✍️ 手動新增（無條碼商品）" }, (saved) => {
+  editProduct(view, { _wantCost: true, _source: "✍️ 手動新增（無條碼商品）" }, (saved, meta) => {
     addToDraft(saved);
+    if (meta && typeof meta.cost === "number") {
+      const line = draft.get(saved.id);
+      if (line) line.unit_cost = meta.cost;
+    }
     paint(view, suppliers);
     toast(`已建檔並加入：${saved.name}`, "ok");
   });
