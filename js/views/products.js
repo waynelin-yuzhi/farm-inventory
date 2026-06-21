@@ -1,6 +1,9 @@
 import { h, money, num, toast, sheet, field, confirmDialog, loading } from "../ui.js";
 import { listProducts, upsertProduct, deleteProduct, adjustStock } from "../db.js";
 import { scanBarcode } from "../scanner.js";
+import { allCategories, addCategory, mergeCategories } from "../categories.js";
+
+let activeCat = "";
 
 export async function renderProducts(view) {
   view.append(loading());
@@ -9,6 +12,7 @@ export async function renderProducts(view) {
 
 async function refresh(view, search = "") {
   const products = await listProducts(search);
+  mergeCategories(products.map((p) => p.category));
   view.innerHTML = "";
 
   const searchBox = h("input", {
@@ -18,15 +22,24 @@ async function refresh(view, search = "") {
   });
   view.append(searchBox);
 
-  view.append(h("div", { class: "section-title" }, `庫存（${products.length} 項）`));
+  // 分類筛选 chips（全部 + 各分類）
+  const cats = ["", ...allCategories()];
+  view.append(h("div", { class: "chips" }, cats.map((c) => h("div", {
+    class: "chip" + (activeCat === c ? " active" : ""),
+    onclick: () => { activeCat = c; refresh(view, search); },
+  }, c === "" ? "全部" : c))));
+
+  const list = activeCat ? products.filter((p) => (p.category || "") === activeCat) : products;
+
+  view.append(h("div", { class: "section-title" }, `庫存（${list.length} 項）${activeCat ? " · " + activeCat : ""}`));
   view.append(h("p", { class: "section-title", style: "margin:-4px 4px 8px;color:var(--muted);font-weight:400" },
     "新增商品請到「進貨」掃碼或按「＋ 新增商品」"));
 
-  if (!products.length) {
-    view.append(h("div", { class: "empty" }, search ? "查無商品" : "還沒有商品，到「進貨」建立第一筆"));
+  if (!list.length) {
+    view.append(h("div", { class: "empty" }, (search || activeCat) ? "此條件查無商品" : "還沒有商品，到「進貨」建立第一筆"));
     return;
   }
-  for (const p of products) view.append(productItem(view, p));
+  for (const p of list) view.append(productItem(view, p));
 }
 
 function productItem(view, p) {
@@ -59,6 +72,23 @@ export function editProduct(view, p, onSaved) {
     const barcodeInput = h("input", { value: p.barcode ?? "", placeholder: "可空白" });
     get.barcode = barcodeInput;
 
+    // 分類下拉：预设六类 + 已用过的，最后一项「＋ 新增分類…」可直接打新的
+    if (p.category) addCategory(p.category);
+    const catSel = h("select", {}, [
+      h("option", { value: "" }, "（不分類）"),
+      ...allCategories().map((c) => h("option", { value: c }, c)),
+      h("option", { value: "__new__" }, "＋ 新增分類…"),
+    ]);
+    catSel.value = p.category || "";
+    catSel.addEventListener("change", () => {
+      if (catSel.value === "__new__") {
+        const v = (window.prompt("輸入新分類名稱：") || "").trim();
+        if (v) { addCategory(v); catSel.insertBefore(h("option", { value: v }, v), catSel.lastChild); catSel.value = v; }
+        else catSel.value = p.category || "";
+      }
+    });
+    get.category = catSel;
+
     const body = h("div", {}, [
       isNew && p._source && h("p", { class: "section-title", style: "color:var(--green-d)" }, p._source),
       field("條碼", h("div", { class: "row" }, [
@@ -76,7 +106,7 @@ export function editProduct(view, p, onSaved) {
         : field("售價 *", inp("sale_price", { type: "number", inputmode: "decimal", placeholder: "0" })),
       h("div", { class: "row" }, [
         field("單位", inp("unit", { value: p.unit || "件", placeholder: "件/台斤/公斤" })),
-        field("分類", inp("category", { placeholder: "蔬菜/水果" })),
+        field("分類", catSel),
       ]),
       field("庫存預警線", inp("reorder_level", { type: "number", inputmode: "decimal", value: p.reorder_level || "", placeholder: "低於此值提醒，0=不提醒" })),
       field("備註", inp("note", { placeholder: "可空白" })),
@@ -88,7 +118,8 @@ export function editProduct(view, p, onSaved) {
           const saved = await upsertProduct({
             id: p.id, barcode: get.barcode.value.trim(), name: get.name.value.trim(),
             sale_price: get.sale_price.value, unit: get.unit.value.trim() || "件",
-            category: get.category.value.trim(), reorder_level: get.reorder_level.value, note: get.note.value.trim(),
+            category: (get.category.value === "__new__" ? "" : get.category.value).trim(),
+            reorder_level: get.reorder_level.value, note: get.note.value.trim(),
           });
           // 盘点：库存若被直接改动，记一笔调整
           if (!isNew && get.stock) {
