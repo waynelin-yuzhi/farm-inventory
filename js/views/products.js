@@ -1,5 +1,5 @@
 import { h, money, num, toast, sheet, field, confirmDialog, loading } from "../ui.js";
-import { listProducts, upsertProduct, deleteProduct } from "../db.js";
+import { listProducts, upsertProduct, deleteProduct, adjustStock } from "../db.js";
 import { scanBarcode } from "../scanner.js";
 
 export async function renderProducts(view) {
@@ -75,7 +75,8 @@ export function editProduct(view, p, onSaved) {
       ]),
       field("庫存預警線", inp("reorder_level", { type: "number", inputmode: "decimal", value: p.reorder_level || "", placeholder: "低於此值提醒，0=不提醒" })),
       field("備註", inp("note", { placeholder: "可空白" })),
-      !isNew && h("p", { class: "section-title" }, `目前庫存：${num(p.stock)} ${p.unit}（庫存請透過「進貨 / 結帳」變動）`),
+      !isNew && field(`目前庫存（${p.unit}）— 盤點可直接修改`, inp("stock", { type: "number", inputmode: "decimal", value: num(p.stock) })),
+      !isNew && h("p", { class: "section-title", style: "margin-top:-4px;color:var(--muted);font-weight:400" }, "平時由「進貨」加、「結帳」扣；這裡直接改＝盤點修正"),
       h("button", { class: "btn btn-primary btn-block", onclick: async () => {
         if (!get.name.value.trim()) return toast("請填寫名稱", "err");
         try {
@@ -84,6 +85,11 @@ export function editProduct(view, p, onSaved) {
             sale_price: get.sale_price.value, unit: get.unit.value.trim() || "件",
             category: get.category.value.trim(), reorder_level: get.reorder_level.value, note: get.note.value.trim(),
           });
+          // 盘点：库存若被直接改动，记一笔调整
+          if (!isNew && get.stock) {
+            const newStock = Number(get.stock.value);
+            if (!Number.isNaN(newStock) && newStock !== Number(p.stock)) await adjustStock(p.id, newStock);
+          }
           toast("已儲存", "ok"); close();
           if (onSaved) onSaved(saved); else refresh(view);
         } catch (e) { toast(e.message || "儲存失敗", "err"); }

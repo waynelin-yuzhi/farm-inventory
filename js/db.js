@@ -34,6 +34,19 @@ export async function deleteProduct(id) {
   if (error) throw error;
 }
 
+// 直接调整库存（盘点/期初）：设为新值，并记一笔 adjust 流水
+export async function adjustStock(productId, newStock) {
+  const cur = await supabase.from("products").select("stock").eq("id", productId).single();
+  if (cur.error) throw cur.error;
+  const change = Number(newStock) - Number(cur.data.stock);
+  if (change === 0) return;
+  const up = await supabase.from("products")
+    .update({ stock: newStock, updated_at: new Date().toISOString() }).eq("id", productId);
+  if (up.error) throw up.error;
+  // 流水仅作审计，失败不影响库存调整
+  await supabase.from("stock_movements").insert({ product_id: productId, change, type: "adjust" });
+}
+
 // ---------- 厂商 ----------
 export async function listSuppliers() {
   return unwrap(await supabase.from("suppliers").select("*").order("name"));
