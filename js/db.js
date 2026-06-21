@@ -120,10 +120,50 @@ export async function recentSales(limit = 15) {
   return unwrap(await supabase.from("sales").select("*").order("sale_date", { ascending: false }).limit(limit));
 }
 
+// 本月经营报表：营业额、毛利(以目前成本估算)、热销 Top5
+export async function monthlyReport() {
+  const start = new Date(); start.setDate(1); start.setHours(0, 0, 0, 0);
+  const sales = unwrap(await supabase.from("sales").select("id, total").gte("sale_date", start.toISOString()));
+  const revenue = sales.reduce((s, r) => s + Number(r.total), 0);
+  const orders = sales.length;
+
+  let cogs = 0;
+  const byProduct = {};
+  if (sales.length) {
+    const items = unwrap(await supabase.from("sale_items")
+      .select("qty, subtotal, products(name, last_cost)")
+      .in("sale_id", sales.map((s) => s.id)));
+    for (const it of items) {
+      cogs += Number(it.qty) * Number(it.products?.last_cost || 0);
+      const name = it.products?.name || "商品";
+      const g = byProduct[name] || (byProduct[name] = { name, qty: 0, amount: 0 });
+      g.qty += Number(it.qty); g.amount += Number(it.subtotal);
+    }
+  }
+  const top = Object.values(byProduct).sort((a, b) => b.qty - a.qty).slice(0, 5);
+  return { revenue, orders, profit: revenue - cogs, top };
+}
+
 // 查单笔销售的明细（含商品名称/单位）
 export async function getSaleDetail(saleId) {
   return unwrap(await supabase
     .from("sale_items")
     .select("qty, unit_price, subtotal, products(name, unit)")
     .eq("sale_id", saleId));
+}
+
+// ---------- 历史单据查询 ----------
+export async function listSales(limit = 200) {
+  return unwrap(await supabase.from("sales").select("*").order("sale_date", { ascending: false }).limit(limit));
+}
+export async function listPurchases(limit = 200) {
+  return unwrap(await supabase.from("purchases")
+    .select("*, suppliers(name)")
+    .order("purchase_date", { ascending: false }).order("created_at", { ascending: false }).limit(limit));
+}
+export async function getPurchaseDetail(purchaseId) {
+  return unwrap(await supabase
+    .from("purchase_items")
+    .select("qty, unit_cost, subtotal, products(name, unit)")
+    .eq("purchase_id", purchaseId));
 }
