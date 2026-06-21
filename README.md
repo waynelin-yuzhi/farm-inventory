@@ -107,3 +107,26 @@ export const SUPABASE_ANON_KEY = "你的 anon key";
 5. LINE Developers：建 LINE Login channel + LIFF app（endpoint 指向托管网址、size=Full），官方帐号图文选单放按钮开启。
 
 > 先决条件：先让本版在 Supabase 跑通，再进入此阶段；届时需提供 LIFF ID 与 LINE Login channel 资讯。
+
+---
+
+## 六、下一阶段规划：拍照 / 条码自动带入商品资料（已确认，暂未实作）
+
+「新增商品」时尽量减少手填：扫码或拍照 → 自动带出名称、分类、单位、品牌、规格；售价与成本仍由人手填（每店不同、照片读不到）。
+
+**两条互补路径**
+1. **条码查免费公开库**（如 Open Food Facts）：标准包装商品命中即带名，零成本、零金钥、免后端。
+2. **拍照 AI 辨识**：农产品、地方小厂商品走此路。手机拍照 → 压缩 → Supabase **Edge Function**（藏 Anthropic 金钥）→ 视觉模型回传结构化 JSON → 前端回填表单。
+
+**模型与成本**
+- 选定 **Claude Haiku 4.5**（`claude-haiku-4-5`，省成本；输入 $1 / 输出 $5 每百万 token）。
+- 辨识只在「建档当下」呼叫一次（非每次扫码结帐），单次约 1~1.5K token 输入 + 约 100 token 输出，成本极低。
+- 用 Claude 结构化输出（`output_config.format`）锁定回传 JSON 格式，保证可直接回填。
+- 金钥务必放 Edge Function 环境变数，绝不可进前端或 repo。
+
+**分阶段**
+- 阶段一：条码 → 免费公开库带名（最快、免金钥）
+- 阶段二：拍照 → Haiku 4.5 视觉辨识（需 Edge Function + Anthropic 金钥）
+- 阶段三：连规格/重量一起读；支援电子秤条码
+
+> 先决条件：先让本版在 Supabase 跑通；阶段二需部署 Edge Function 并提供一把 Anthropic API 金钥（存为环境变数）。
