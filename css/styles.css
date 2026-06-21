@@ -141,8 +141,10 @@ button, input, select { font-family: inherit; font-size: 16px; }
   position: fixed; right: 18px; bottom: calc(76px + var(--safe-b));
   background: var(--green); color: #fff; border: none; border-radius: 999px;
   padding: 14px 20px; font-size: 16px; font-weight: 700; box-shadow: 0 6px 20px rgba(46,125,50,.4);
-  z-index: 15; display: flex; align-items: center; gap: 8px;
+  z-index: 30; display: flex; align-items: center; gap: 8px;
 }
+/* 結帳/進貨頁有底部結算列時，掃碼鈕上移以免被遮 */
+.fab-scan.with-bar { bottom: calc(134px + var(--safe-b)); }
 
 /* ---------- 扫码 ---------- */
 .scanner-modal { position: fixed; inset: 0; background: #000; z-index: 100; display: flex; align-items: center; justify-content: center; }

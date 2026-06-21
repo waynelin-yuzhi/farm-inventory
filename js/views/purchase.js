@@ -44,10 +44,12 @@ function paint(view, suppliers) {
   // 底部留白，避免最後一項被結算列遮住
   view.append(h("div", { style: "height:84px" }));
 
-  // 底部結算列（掃碼鈕內嵌，不再被遮住）
+  // 右下角懸浮掃碼鈕（浮在結算列上方，不被遮住）
+  view.append(h("button", { class: "fab-scan with-bar", onclick: () => scanAdd(view, suppliers) }, ["📷 掃碼"]));
+
+  // 底部結算列
   const total = draftTotal();
   view.append(h("div", { class: "bottom-bar" }, [
-    h("button", { class: "btn btn-primary", style: "flex:0 0 auto", onclick: () => scanAdd(view, suppliers) }, "📷 掃碼"),
     h("div", { class: "total" }, money(total)),
     h("button", { class: "btn btn-primary", style: "flex:0 0 auto", disabled: draft.size === 0, onclick: () => submit(view, suppliers) }, "入庫"),
   ]));

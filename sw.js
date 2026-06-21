@@ -1,23 +1,11 @@
-// 简易 Service Worker：缓存应用外壳，加快加载并支持离线打开界面。
-// 数据读写仍需联网（Supabase）。修改静态文件后请提升 CACHE 版本号。
-const CACHE = "farm-inv-v1";
+// Service Worker：開發/迭代期採「網路優先」，確保更新能即時送達。
+// 連不上網時才用快取（仍可離線開啟介面）。改版時提升 CACHE 版本號。
+const CACHE = "farm-inv-v3";
 const SHELL = [
   "./",
   "./index.html",
   "./css/styles.css",
   "./manifest.webmanifest",
-  "./js/app.js",
-  "./js/router.js",
-  "./js/ui.js",
-  "./js/db.js",
-  "./js/scanner.js",
-  "./js/supabase.js",
-  "./js/config.js",
-  "./js/views/dashboard.js",
-  "./js/views/checkout.js",
-  "./js/views/purchase.js",
-  "./js/views/products.js",
-  "./js/views/suppliers.js",
 ];
 
 self.addEventListener("install", (e) => {
@@ -26,22 +14,23 @@ self.addEventListener("install", (e) => {
 
 self.addEventListener("activate", (e) => {
   e.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim())
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
-  // 仅对同源 GET 走缓存；跨域（Supabase / CDN）直连网络。
   if (e.request.method !== "GET" || url.origin !== location.origin) return;
+  // 網路優先：永遠先抓最新，成功就順手更新快取；離線才回退快取。
   e.respondWith(
-    caches.match(e.request).then((hit) =>
-      hit ||
-      fetch(e.request).then((res) => {
+    fetch(e.request)
+      .then((res) => {
         const copy = res.clone();
         caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
         return res;
-      }).catch(() => caches.match("./index.html"))
-    )
+      })
+      .catch(() => caches.match(e.request).then((hit) => hit || caches.match("./index.html")))
   );
 });
