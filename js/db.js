@@ -35,7 +35,7 @@ export async function deleteProduct(id) {
 }
 
 // 直接调整库存（盘点/期初）：设为新值，并记一笔 adjust 流水
-export async function adjustStock(productId, newStock) {
+export async function adjustStock(productId, newStock, reason) {
   const cur = await supabase.from("products").select("stock").eq("id", productId).single();
   if (cur.error) throw cur.error;
   const change = Number(newStock) - Number(cur.data.stock);
@@ -43,8 +43,26 @@ export async function adjustStock(productId, newStock) {
   const up = await supabase.from("products")
     .update({ stock: newStock, updated_at: new Date().toISOString() }).eq("id", productId);
   if (up.error) throw up.error;
-  // 流水仅作审计，失败不影响库存调整
-  await supabase.from("stock_movements").insert({ product_id: productId, change, type: "adjust" });
+  await insertMovement(productId, change, "adjust", reason);
+}
+
+// 损耗/报废：扣减库存并记一笔 waste 流水
+export async function recordWaste(productId, qty, reason) {
+  const q = Number(qty);
+  if (!q || q <= 0) throw new Error("數量需大於 0");
+  const cur = await supabase.from("products").select("stock").eq("id", productId).single();
+  if (cur.error) throw cur.error;
+  const up = await supabase.from("products")
+    .update({ stock: Number(cur.data.stock) - q, updated_at: new Date().toISOString() }).eq("id", productId);
+  if (up.error) throw up.error;
+  await insertMovement(productId, -q, "waste", reason);
+}
+
+// 写库存流水（仅审计）。note 列若尚未建立会退而不带 note；失败不影响库存。
+async function insertMovement(productId, change, type, note) {
+  const base = { product_id: productId, change, type };
+  const r = await supabase.from("stock_movements").insert(note ? { ...base, note } : base);
+  if (r.error && note) await supabase.from("stock_movements").insert(base);
 }
 
 // ---------- 厂商 ----------

@@ -78,10 +78,13 @@ create table if not exists public.stock_movements (
   id         uuid primary key default gen_random_uuid(),
   product_id uuid not null references public.products(id),
   change     numeric(12,3) not null,   -- 正数=入库, 负数=出库
-  type       text not null,            -- 'purchase' | 'sale' | 'adjust'
+  type       text not null,            -- 'purchase' | 'sale' | 'adjust' | 'waste'
   ref_id     uuid,                     -- 关联进货单/销售单 id
+  note       text,                     -- 盘点/报废原因
   created_at timestamptz not null default now()
 );
+-- 既有资料库补上 note 栏（盘点原因/报废原因），可重复执行
+alter table public.stock_movements add column if not exists note text;
 
 create index if not exists idx_products_barcode on public.products(barcode);
 create index if not exists idx_purchase_items_purchase on public.purchase_items(purchase_id);

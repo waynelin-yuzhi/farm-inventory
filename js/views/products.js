@@ -1,5 +1,5 @@
 import { h, money, num, toast, sheet, field, confirmDialog, loading } from "../ui.js";
-import { listProducts, upsertProduct, deleteProduct, adjustStock } from "../db.js";
+import { listProducts, upsertProduct, deleteProduct, adjustStock, recordWaste } from "../db.js";
 import { scanBarcode } from "../scanner.js";
 import { allCategories, addCategory, mergeCategories } from "../categories.js";
 
@@ -22,12 +22,16 @@ async function refresh(view, search = "") {
   });
   view.append(searchBox);
 
-  // 分類筛选 chips（全部 + 各分類）
+  // 每類數量
+  const counts = {};
+  for (const p of products) { const c = p.category || ""; counts[c] = (counts[c] || 0) + 1; }
+
+  // 分類筛选 chips（全部 + 各分類，含數量）
   const cats = ["", ...allCategories()];
   view.append(h("div", { class: "chips" }, cats.map((c) => h("div", {
     class: "chip" + (activeCat === c ? " active" : ""),
     onclick: () => { activeCat = c; refresh(view, search); },
-  }, c === "" ? "全部" : c))));
+  }, `${c === "" ? "全部" : c} ${c === "" ? products.length : (counts[c] || 0)}`))));
 
   const list = activeCat ? products.filter((p) => (p.category || "") === activeCat) : products;
 
@@ -39,7 +43,19 @@ async function refresh(view, search = "") {
     view.append(h("div", { class: "empty" }, (search || activeCat) ? "此條件查無商品" : "還沒有商品，到「進貨」建立第一筆"));
     return;
   }
-  for (const p of list) view.append(productItem(view, p));
+
+  if (activeCat) {
+    for (const p of list) view.append(productItem(view, p));
+  } else {
+    // 全部：依分類分組顯示
+    const groups = allCategories().filter((c) => counts[c]);
+    if (counts[""]) groups.push("");
+    for (const g of groups) {
+      const items = products.filter((p) => (p.category || "") === g);
+      view.append(h("div", { class: "section-title", style: "margin-top:12px;color:var(--green-d)" }, `${g || "未分類"}（${items.length}）`));
+      for (const p of items) view.append(productItem(view, p));
+    }
+  }
 }
 
 function productItem(view, p) {
@@ -110,7 +126,10 @@ export function editProduct(view, p, onSaved) {
       ]),
       field("庫存預警線", inp("reorder_level", { type: "number", inputmode: "decimal", value: p.reorder_level || "", placeholder: "低於此值提醒，0=不提醒" })),
       field("備註", inp("note", { placeholder: "可空白" })),
-      !isNew && field(`目前庫存（${p.unit}）— 盤點可直接修改`, inp("stock", { type: "number", inputmode: "decimal", value: num(p.stock) })),
+      !isNew && h("div", { class: "row" }, [
+        field(`目前庫存（${p.unit}）— 盤點可直接改`, inp("stock", { type: "number", inputmode: "decimal", value: num(p.stock) })),
+        field("盤點原因（選填）", inp("adjustNote", { placeholder: "如：盤點修正" })),
+      ]),
       !isNew && h("p", { class: "section-title", style: "margin-top:-4px;color:var(--muted);font-weight:400" }, "平時由「進貨」加、「結帳」扣；這裡直接改＝盤點修正"),
       h("button", { class: "btn btn-primary btn-block", onclick: async () => {
         if (!get.name.value.trim()) return toast("請填寫名稱", "err");
@@ -124,7 +143,9 @@ export function editProduct(view, p, onSaved) {
           // 盘点：库存若被直接改动，记一笔调整
           if (!isNew && get.stock) {
             const newStock = Number(get.stock.value);
-            if (!Number.isNaN(newStock) && newStock !== Number(p.stock)) await adjustStock(p.id, newStock);
+            if (!Number.isNaN(newStock) && newStock !== Number(p.stock)) {
+              await adjustStock(p.id, newStock, (get.adjustNote && get.adjustNote.value.trim()) || "盤點調整");
+            }
           }
           // 进货情境下顺手填的成本，回传给呼叫端带进明细
           const meta = {};
@@ -133,6 +154,15 @@ export function editProduct(view, p, onSaved) {
           if (onSaved) onSaved(saved, meta); else refresh(view);
         } catch (e) { toast(e.message || "儲存失敗", "err"); }
       } }, "儲存"),
+      !isNew && h("button", { class: "btn btn-block", style: "background:#fff3e0;color:var(--warn)", onclick: async () => {
+        const qtyStr = window.prompt(`報廢 / 損耗數量（${p.unit}）：`);
+        if (qtyStr == null) return;
+        const q = Number(qtyStr);
+        if (!q || q <= 0) return toast("數量需大於 0", "err");
+        const reason = (window.prompt("原因（選填，如：過期 / 碰傷 / 失水）：") || "報廢").trim();
+        try { await recordWaste(p.id, q, reason); toast(`已報廢 ${num(q)} ${p.unit}`, "ok"); close(); refresh(view); }
+        catch (e) { toast(e.message || "報廢失敗", "err"); }
+      } }, "📉 報廢 / 損耗"),
       !isNew && h("button", { class: "btn btn-danger btn-block", onclick: async () => {
         if (await confirmDialog("刪除商品", `確定刪除「${p.name}」？歷史單據不受影響。`)) {
           try { await deleteProduct(p.id); toast("已刪除", "ok"); close(); refresh(view); }
