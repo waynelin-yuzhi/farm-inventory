@@ -24,6 +24,8 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var adminKey: TextInputEditText
     private lateinit var budget: TextInputEditText
     private lateinit var interval: TextInputEditText
+    private lateinit var supabaseToken: TextInputEditText
+    private lateinit var supabaseRefs: TextInputEditText
     private lateinit var customList: LinearLayout
     private val customSources = mutableListOf<CustomSource>()
 
@@ -39,11 +41,15 @@ class SettingsActivity : AppCompatActivity() {
         budget = findViewById(R.id.input_budget)
         interval = findViewById(R.id.input_interval)
         customList = findViewById(R.id.custom_list)
+        supabaseToken = findViewById(R.id.input_supabase_token)
+        supabaseRefs = findViewById(R.id.input_supabase_refs)
 
         sessionKey.setText(settings.claudeSessionKey)
         adminKey.setText(settings.anthropicAdminKey)
         settings.apiMonthlyBudget.takeIf { it > 0 }?.let { budget.setText(trimNumber(it)) }
         interval.setText(settings.refreshMinutes.toString())
+        supabaseToken.setText(settings.supabaseToken)
+        supabaseRefs.setText(settings.supabaseProjectRefs)
         customSources += settings.customSources
         renderCustom()
 
@@ -72,6 +78,8 @@ class SettingsActivity : AppCompatActivity() {
         settings.claudeSessionKey = newSession
         settings.anthropicAdminKey = adminKey.text?.toString().orEmpty()
         settings.apiMonthlyBudget = budget.text?.toString()?.toDoubleOrNull() ?: 0.0
+        settings.supabaseToken = supabaseToken.text?.toString().orEmpty()
+        settings.supabaseProjectRefs = supabaseRefs.text?.toString().orEmpty()
         val oldInterval = settings.refreshMinutes
         settings.refreshMinutes = interval.text?.toString()?.toIntOrNull() ?: 30
         settings.customSources = customSources.toList()

@@ -6,6 +6,7 @@
 |---|---|---|
 | Claude 訂閱（Pro / Max） | 5 小時時段 %、本週所有模型 %、本週各模型（Fable / Opus / Sonnet…）%、重置時間、額外用量 | claude.ai 的 `sessionKey` cookie |
 | Claude API（Console） | 本月花費（對比自訂月預算的 %）、今日花費 | Admin API key（`sk-ant-admin…`） |
+| Supabase | 各專案資料庫大小、檔案儲存量（對比方案額度）、是否被暫停；組織本月流量 / MAU / Edge Function 次數（讀得到才顯示） | Access token（`sbp_…`） |
 | 自訂 JSON API | 任一工具的用量 / 餘額（可算百分比） | 該工具的 API key |
 
 - 顏色：綠 < 70%、黃 70–89%、紅 ≥ 90%
@@ -33,6 +34,14 @@
 **Claude API Admin key**
 console.anthropic.com → Settings → Admin keys → 建立（需組織 admin 權限）。
 Anthropic 沒有「剩餘儲值額度」的 API，所以用 App 內自填的「每月預算」算百分比。
+
+**Supabase Access token**
+supabase.com/dashboard/account/tokens → Generate new token。有「權限範圍」選項時，只勾讀取：Projects、Organization Settings、Database（Read）。
+組織本月用量（流量、MAU）讀的是 Supabase 後台自用接口，讀不到時該卡片不會出現。
+
+**Voyage AI**
+Voyage AI（含 MongoDB Atlas 版）目前沒有查詢用量或剩餘免費 token 的 API，只能在後台網頁看。
+可行做法：自己的程式每次呼叫 Voyage 時，把回應的 `usage.total_tokens` 累加記錄（例如寫進 Google Sheet，再用 GAS 開一個回傳 JSON 的網址），再用「自訂 JSON API」接進來。
 
 **自訂來源範例**
 

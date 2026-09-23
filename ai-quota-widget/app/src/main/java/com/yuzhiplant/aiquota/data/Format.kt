@@ -18,6 +18,12 @@ object Format {
 
     fun number(v: Double): String = numberFmt.format(v)
 
+    fun bytes(v: Double): String = when {
+        v >= 1e9 -> String.format(Locale.US, "%.2f GB", v / 1e9)
+        v >= 1e6 -> String.format(Locale.US, "%.0f MB", v / 1e6)
+        else -> String.format(Locale.US, "%.0f KB", v / 1e3)
+    }
+
     fun updatedAt(epochMs: Long): String {
         if (epochMs <= 0) return "尚未更新"
         return timeFmt.format(Instant.ofEpochMilli(epochMs).atZone(ZoneId.systemDefault()))

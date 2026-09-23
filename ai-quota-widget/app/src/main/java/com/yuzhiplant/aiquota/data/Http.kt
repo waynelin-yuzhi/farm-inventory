@@ -10,18 +10,28 @@ object Http {
         IOException("HTTP $code ${body.take(160)}")
 
     /** 同步 GET，請在 Dispatchers.IO 呼叫。 */
-    fun get(url: String, headers: Map<String, String>): String {
+    fun get(url: String, headers: Map<String, String>): String = request("GET", url, headers, null)
+
+    /** 同步 POST（JSON body），請在 Dispatchers.IO 呼叫。 */
+    fun post(url: String, headers: Map<String, String>, jsonBody: String): String =
+        request("POST", url, headers + ("Content-Type" to "application/json"), jsonBody)
+
+    private fun request(method: String, url: String, headers: Map<String, String>, body: String?): String {
         val conn = URL(url).openConnection() as HttpURLConnection
         conn.connectTimeout = 15_000
         conn.readTimeout = 20_000
-        conn.requestMethod = "GET"
+        conn.requestMethod = method
         headers.forEach { (k, v) -> conn.setRequestProperty(k, v) }
+        if (body != null) {
+            conn.doOutput = true
+            conn.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
+        }
         try {
             val code = conn.responseCode
             val stream = if (code in 200..299) conn.inputStream else conn.errorStream
-            val body = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: ""
-            if (code !in 200..299) throw HttpException(code, body)
-            return body
+            val text = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: ""
+            if (code !in 200..299) throw HttpException(code, text)
+            return text
         } finally {
             conn.disconnect()
         }

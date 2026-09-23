@@ -30,6 +30,16 @@ class Settings(context: Context) {
         get() = prefs.getString(KEY_BUDGET, "0")?.toDoubleOrNull() ?: 0.0
         set(v) = prefs.edit().putString(KEY_BUDGET, v.toString()).apply()
 
+    /** Supabase Personal Access Token（sbp_ 開頭） */
+    var supabaseToken: String
+        get() = prefs.getString(KEY_SUPABASE_TOKEN, "") ?: ""
+        set(v) = prefs.edit().putString(KEY_SUPABASE_TOKEN, v.trim()).apply()
+
+    /** 只看特定專案（逗號分隔的 project ref）；空白 = 全部專案 */
+    var supabaseProjectRefs: String
+        get() = prefs.getString(KEY_SUPABASE_REFS, "") ?: ""
+        set(v) = prefs.edit().putString(KEY_SUPABASE_REFS, v.trim()).apply()
+
     var refreshMinutes: Int
         get() = prefs.getInt(KEY_INTERVAL, 30)
         set(v) = prefs.edit().putInt(KEY_INTERVAL, v.coerceAtLeast(15)).apply()
@@ -55,6 +65,8 @@ class Settings(context: Context) {
         private const val KEY_ORG = "claude_org_id"
         private const val KEY_ADMIN = "anthropic_admin_key"
         private const val KEY_BUDGET = "api_monthly_budget"
+        private const val KEY_SUPABASE_TOKEN = "supabase_token"
+        private const val KEY_SUPABASE_REFS = "supabase_refs"
         private const val KEY_INTERVAL = "refresh_minutes"
         private const val KEY_CUSTOM = "custom_sources"
 

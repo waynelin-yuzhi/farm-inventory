@@ -21,7 +21,8 @@ object QuotaRepository {
                 async { ClaudeSubscriptionProvider.fetch(settings) },
                 async { ClaudeApiProvider.fetch(settings) },
             ) + settings.customSources.map { src -> async { CustomJsonProvider.fetch(src) } }
-            jobs.awaitAll().filterNotNull()
+            val supabase = async { SupabaseProvider.fetch(settings) }
+            jobs.awaitAll().filterNotNull() + supabase.await()
         }
         ResultCache.save(context, results)
         QuotaWidgetProvider.updateAll(context)
