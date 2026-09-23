@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="brand">#8FD1AE</color>
+    <color name="brand_container">#1F4533</color>
+    <color name="surface">#121513</color>
+    <color name="card">#1C201D</color>
+    <color name="text_primary">#E6EAE6</color>
+    <color name="text_secondary">#A3ABA5</color>
+    <color name="track">#333A35</color>
+    <color name="level_ok">#5CC08A</color>
+    <color name="level_warn">#F0B72F</color>
+    <color name="level_bad">#EF6B62</color>
+    <color name="widget_bg">#F21C201D</color>
+</resources>
