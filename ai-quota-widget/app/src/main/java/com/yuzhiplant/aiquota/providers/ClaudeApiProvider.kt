@@ -36,13 +36,14 @@ object ClaudeApiProvider {
 
             var monthCents = 0.0
             var todayCents = 0.0
+            val byModel = mutableMapOf<String, Double>()
             var page: String? = null
             var guard = 0
             do {
                 val url = buildString {
                     append("https://api.anthropic.com/v1/organizations/cost_report")
                     append("?starting_at=").append(enc(DateTimeFormatter.ISO_INSTANT.format(monthStart)))
-                    append("&bucket_width=1d&limit=31")
+                    append("&bucket_width=1d&limit=31&group_by%5B%5D=description")
                     if (page != null) append("&page=").append(enc(page!!))
                 }
                 val json = JSONObject(Http.get(url, headers))
@@ -54,8 +55,11 @@ object ClaudeApiProvider {
                         val results = bucket.optJSONArray("results") ?: continue
                         for (j in 0 until results.length()) {
                             // amount 是以「美分」為單位的十進位字串
-                            val cents = results.getJSONObject(j).optString("amount").toDoubleOrNull() ?: 0.0
+                            val r = results.getJSONObject(j)
+                            val cents = r.optString("amount").toDoubleOrNull() ?: 0.0
                             monthCents += cents
+                            val model = r.optString("model").takeIf { it.isNotEmpty() && it != "null" } ?: "其他（工具、網搜等）"
+                            byModel[model] = (byModel[model] ?: 0.0) + cents
                             if (isToday) todayCents += cents
                         }
                     }
@@ -69,14 +73,13 @@ object ClaudeApiProvider {
             } while (page != null && guard < 10)
 
             val spent = monthCents / 100
-            val budget = settings.apiMonthlyBudget
-            val items = mutableListOf<QuotaItem>()
-            items += if (budget > 0) {
-                QuotaItem("本月花費", spent / budget * 100, "${Format.usd(spent)} / ${Format.usd(budget)}")
-            } else {
-                QuotaItem("本月花費", null, "${Format.usd(spent)}（未設月預算）")
+            val items = MonthlyCost.items(spent, settings.apiMonthlyBudget).toMutableList()
+            items += QuotaItem("今日花費（UTC）", null, Format.usd(todayCents / 100), showInWidget = false)
+            // 各模型本月花費（前 4 名），只在 App 內顯示
+            byModel.entries.sortedByDescending { it.value }.take(4).filter { it.value > 0 }.forEach { (model, cents) ->
+                val share = if (monthCents > 0) cents / monthCents * 100 else 0.0
+                items += QuotaItem("・$model", null, "${Format.usd(cents / 100)}（${Format.percent(share)}）", showInWidget = false)
             }
-            items += QuotaItem("今日花費（UTC）", null, Format.usd(todayCents / 100))
             ProviderResult(ID, NAME, items, null, now)
         } catch (e: Http.HttpException) {
             val msg = when (e.code) {

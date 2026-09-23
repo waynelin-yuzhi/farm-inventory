@@ -2,14 +2,18 @@
 
 一個只做一件事的 App：把各種 AI 工具的**使用量 / 剩餘額度**集中顯示，並提供桌面小工具隨時查看。
 
+依重要順序排列（App 與小工具都照這個順序）：
+
 | 來源 | 顯示內容 | 需要的憑證 |
 |---|---|---|
+| Claude API（Console） | 本月花費 ÷ 月預算 %、預估月底花費、超支警示；App 內另有今日花費與各模型花費占比 | Admin API key（`sk-ant-admin…`） |
 | Claude 訂閱（Pro / Max） | 5 小時時段 %、本週所有模型 %、本週各模型（Fable / Opus / Sonnet…）%、重置時間、額外用量 | claude.ai 的 `sessionKey` cookie |
-| Claude API（Console） | 本月花費（對比自訂月預算的 %）、今日花費 | Admin API key（`sk-ant-admin…`） |
+| Voyage AI | 本月花費 ÷ 月預算 %、預估月底花費（經 MongoDB Atlas 帳單） | Atlas 服務帳號 Client ID / Secret ＋ 組織 ID |
 | Supabase | 各專案資料庫大小、檔案儲存量（對比方案額度）、是否被暫停；組織本月流量 / MAU / Edge Function 次數（讀得到才顯示） | Access token（`sbp_…`） |
 | 自訂 JSON API | 任一工具的用量 / 餘額（可算百分比） | 該工具的 API key |
 
 - 顏色：綠 < 70%、黃 70–89%、紅 ≥ 90%
+- 預算提醒：Claude API、Voyage AI 本月花費達預算 80%、100% 時各推播一次（每月重置）
 - 自動更新：背景每 30 分鐘（可調，最少 15 分鐘）；開 App、下拉、按小工具 ↻ 會立即更新
 - 金鑰只存在手機本機，以 Android Keystore 加密
 
@@ -39,9 +43,13 @@ Anthropic 沒有「剩餘儲值額度」的 API，所以用 App 內自填的「�
 supabase.com/dashboard/account/tokens → Generate new token。有「權限範圍」選項時，只勾讀取：Projects、Organization Settings、Database（Read）。
 組織本月用量（流量、MAU）讀的是 Supabase 後台自用接口，讀不到時該卡片不會出現。
 
-**Voyage AI**
-Voyage AI（含 MongoDB Atlas 版）目前沒有查詢用量或剩餘免費 token 的 API，只能在後台網頁看。
-可行做法：自己的程式每次呼叫 Voyage 時，把回應的 `usage.total_tokens` 累加記錄（例如寫進 Google Sheet，再用 GAS 開一個回傳 JSON 的網址），再用「自訂 JSON API」接進來。
+**Voyage AI（花費）**
+Voyage 本身沒有用量 API，但帳單已併入 MongoDB Atlas，App 透過 Atlas Admin API 讀本月花費：
+1. cloud.mongodb.com → Organization → Access Manager → Service Accounts → 建立，權限選 **Organization Billing Viewer**
+2. 複製 Client ID、Client Secret（只顯示一次）；組織 ID 在 Organization Settings
+3. 優先用 Cost Explorer 只算「AI Model APIs / Automated Embedding / Native Reranking」；讀不到時退回本月未結帳單總額（會標示「Atlas 全部服務」）
+
+限制：剩餘免費 token 沒有 API 可查；若是在舊版 dash.voyageai.com 儲值計費（非 Atlas），目前沒有任何 API 可讀花費。
 
 **自訂來源範例**
 

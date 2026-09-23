@@ -8,17 +8,21 @@ data class QuotaItem(
     val label: String,
     val percent: Double?,
     val detail: String,
+    /** false：只在 App 內顯示，桌面小工具略過（節省空間） */
+    val showInWidget: Boolean = true,
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("label", label)
         .put("percent", percent ?: JSONObject.NULL)
         .put("detail", detail)
+        .put("showInWidget", showInWidget)
 
     companion object {
         fun fromJson(o: JSONObject) = QuotaItem(
             label = o.optString("label"),
             percent = if (o.isNull("percent")) null else o.optDouble("percent"),
             detail = o.optString("detail"),
+            showInWidget = o.optBoolean("showInWidget", true),
         )
     }
 }

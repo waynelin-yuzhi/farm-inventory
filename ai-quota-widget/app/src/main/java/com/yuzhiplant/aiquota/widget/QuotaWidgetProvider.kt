@@ -36,7 +36,7 @@ class QuotaWidgetProvider : AppWidgetProvider() {
 
     companion object {
         const val ACTION_REFRESH = "com.yuzhiplant.aiquota.action.REFRESH"
-        private const val MAX_ROWS = 9
+        private const val MAX_ROWS = 14
 
         fun updateAll(context: Context, refreshing: Boolean = false) {
             val manager = AppWidgetManager.getInstance(context)
@@ -75,7 +75,7 @@ class QuotaWidgetProvider : AppWidgetProvider() {
                         rows++
                         continue
                     }
-                    for (item in r.items) {
+                    for (item in r.items.filter { it.showInWidget }) {
                         if (rows >= MAX_ROWS) break
                         root.addView(R.id.widget_rows, row(pkg, item.label, item.percent, item.detail))
                         rows++

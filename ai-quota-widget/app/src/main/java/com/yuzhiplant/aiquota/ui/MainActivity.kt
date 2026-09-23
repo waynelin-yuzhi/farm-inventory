@@ -1,6 +1,9 @@
 package com.yuzhiplant.aiquota.ui
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -14,6 +17,7 @@ import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.yuzhiplant.aiquota.R
+import com.yuzhiplant.aiquota.data.BudgetAlerts
 import com.yuzhiplant.aiquota.data.Format
 import com.yuzhiplant.aiquota.data.ResultCache
 import com.yuzhiplant.aiquota.data.usageLevel
@@ -48,6 +52,14 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
         swipe.setOnRefreshListener { refresh() }
+
+        // 預算提醒需要通知權限（Android 13+）
+        BudgetAlerts.ensureChannel(this)
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
+        }
     }
 
     override fun onResume() {

@@ -30,6 +30,24 @@ class Settings(context: Context) {
         get() = prefs.getString(KEY_BUDGET, "0")?.toDoubleOrNull() ?: 0.0
         set(v) = prefs.edit().putString(KEY_BUDGET, v.toString()).apply()
 
+    /** MongoDB Atlas 服務帳號（Voyage AI 帳單用）：Client ID / Secret / 組織 ID */
+    var voyageClientId: String
+        get() = prefs.getString(KEY_VOYAGE_ID, "") ?: ""
+        set(v) = prefs.edit().putString(KEY_VOYAGE_ID, v.trim()).apply()
+
+    var voyageClientSecret: String
+        get() = prefs.getString(KEY_VOYAGE_SECRET, "") ?: ""
+        set(v) = prefs.edit().putString(KEY_VOYAGE_SECRET, v.trim()).apply()
+
+    var voyageOrgId: String
+        get() = prefs.getString(KEY_VOYAGE_ORG, "") ?: ""
+        set(v) = prefs.edit().putString(KEY_VOYAGE_ORG, v.trim()).apply()
+
+    /** Voyage AI 每月預算（美元），0 表示未設定 */
+    var voyageMonthlyBudget: Double
+        get() = prefs.getString(KEY_VOYAGE_BUDGET, "0")?.toDoubleOrNull() ?: 0.0
+        set(v) = prefs.edit().putString(KEY_VOYAGE_BUDGET, v.toString()).apply()
+
     /** Supabase Personal Access Token（sbp_ 開頭） */
     var supabaseToken: String
         get() = prefs.getString(KEY_SUPABASE_TOKEN, "") ?: ""
@@ -65,6 +83,10 @@ class Settings(context: Context) {
         private const val KEY_ORG = "claude_org_id"
         private const val KEY_ADMIN = "anthropic_admin_key"
         private const val KEY_BUDGET = "api_monthly_budget"
+        private const val KEY_VOYAGE_ID = "voyage_client_id"
+        private const val KEY_VOYAGE_SECRET = "voyage_client_secret"
+        private const val KEY_VOYAGE_ORG = "voyage_org_id"
+        private const val KEY_VOYAGE_BUDGET = "voyage_monthly_budget"
         private const val KEY_SUPABASE_TOKEN = "supabase_token"
         private const val KEY_SUPABASE_REFS = "supabase_refs"
         private const val KEY_INTERVAL = "refresh_minutes"

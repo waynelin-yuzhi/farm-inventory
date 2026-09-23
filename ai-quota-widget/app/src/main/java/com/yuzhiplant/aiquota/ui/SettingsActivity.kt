@@ -24,6 +24,10 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var adminKey: TextInputEditText
     private lateinit var budget: TextInputEditText
     private lateinit var interval: TextInputEditText
+    private lateinit var voyageId: TextInputEditText
+    private lateinit var voyageSecret: TextInputEditText
+    private lateinit var voyageOrg: TextInputEditText
+    private lateinit var voyageBudget: TextInputEditText
     private lateinit var supabaseToken: TextInputEditText
     private lateinit var supabaseRefs: TextInputEditText
     private lateinit var customList: LinearLayout
@@ -41,6 +45,10 @@ class SettingsActivity : AppCompatActivity() {
         budget = findViewById(R.id.input_budget)
         interval = findViewById(R.id.input_interval)
         customList = findViewById(R.id.custom_list)
+        voyageId = findViewById(R.id.input_voyage_id)
+        voyageSecret = findViewById(R.id.input_voyage_secret)
+        voyageOrg = findViewById(R.id.input_voyage_org)
+        voyageBudget = findViewById(R.id.input_voyage_budget)
         supabaseToken = findViewById(R.id.input_supabase_token)
         supabaseRefs = findViewById(R.id.input_supabase_refs)
 
@@ -48,6 +56,10 @@ class SettingsActivity : AppCompatActivity() {
         adminKey.setText(settings.anthropicAdminKey)
         settings.apiMonthlyBudget.takeIf { it > 0 }?.let { budget.setText(trimNumber(it)) }
         interval.setText(settings.refreshMinutes.toString())
+        voyageId.setText(settings.voyageClientId)
+        voyageSecret.setText(settings.voyageClientSecret)
+        voyageOrg.setText(settings.voyageOrgId)
+        settings.voyageMonthlyBudget.takeIf { it > 0 }?.let { voyageBudget.setText(trimNumber(it)) }
         supabaseToken.setText(settings.supabaseToken)
         supabaseRefs.setText(settings.supabaseProjectRefs)
         customSources += settings.customSources
@@ -78,6 +90,10 @@ class SettingsActivity : AppCompatActivity() {
         settings.claudeSessionKey = newSession
         settings.anthropicAdminKey = adminKey.text?.toString().orEmpty()
         settings.apiMonthlyBudget = budget.text?.toString()?.toDoubleOrNull() ?: 0.0
+        settings.voyageClientId = voyageId.text?.toString().orEmpty()
+        settings.voyageClientSecret = voyageSecret.text?.toString().orEmpty()
+        settings.voyageOrgId = voyageOrg.text?.toString().orEmpty()
+        settings.voyageMonthlyBudget = voyageBudget.text?.toString()?.toDoubleOrNull() ?: 0.0
         settings.supabaseToken = supabaseToken.text?.toString().orEmpty()
         settings.supabaseProjectRefs = supabaseRefs.text?.toString().orEmpty()
         val oldInterval = settings.refreshMinutes

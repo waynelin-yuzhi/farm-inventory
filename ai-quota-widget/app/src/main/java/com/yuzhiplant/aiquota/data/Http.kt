@@ -12,9 +12,13 @@ object Http {
     /** 同步 GET，請在 Dispatchers.IO 呼叫。 */
     fun get(url: String, headers: Map<String, String>): String = request("GET", url, headers, null)
 
-    /** 同步 POST（JSON body），請在 Dispatchers.IO 呼叫。 */
-    fun post(url: String, headers: Map<String, String>, jsonBody: String): String =
-        request("POST", url, headers + ("Content-Type" to "application/json"), jsonBody)
+    /** 同步 POST，請在 Dispatchers.IO 呼叫。預設送 JSON。 */
+    fun post(
+        url: String,
+        headers: Map<String, String>,
+        body: String,
+        contentType: String = "application/json",
+    ): String = request("POST", url, headers + ("Content-Type" to contentType), body)
 
     private fun request(method: String, url: String, headers: Map<String, String>, body: String?): String {
         val conn = URL(url).openConnection() as HttpURLConnection
