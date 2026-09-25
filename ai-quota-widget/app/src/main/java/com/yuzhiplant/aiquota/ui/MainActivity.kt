@@ -39,11 +39,16 @@ class MainActivity : AppCompatActivity() {
 
         val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
         toolbar.setOnMenuItemClickListener {
-            if (it.itemId == R.id.action_settings) {
-                startActivity(Intent(this, SettingsActivity::class.java))
-                true
-            } else {
-                false
+            when (it.itemId) {
+                R.id.action_settings -> {
+                    startActivity(Intent(this, SettingsActivity::class.java))
+                    true
+                }
+                R.id.action_reorder -> {
+                    startActivity(Intent(this, ReorderActivity::class.java))
+                    true
+                }
+                else -> false
             }
         }
 

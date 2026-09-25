@@ -20,7 +20,7 @@ object ResultCache {
             .getString(KEY, null) ?: return emptyList()
         return try {
             val arr = JSONArray(raw)
-            (0 until arr.length()).map { ProviderResult.fromJson(arr.getJSONObject(it)) }
+            SectionOrder.apply(context, (0 until arr.length()).map { ProviderResult.fromJson(arr.getJSONObject(it)) })
         } catch (e: Exception) {
             emptyList()
         }

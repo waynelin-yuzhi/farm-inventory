@@ -3,6 +3,7 @@ package com.yuzhiplant.aiquota.providers
 import android.content.Context
 import com.yuzhiplant.aiquota.data.BudgetAlerts
 import com.yuzhiplant.aiquota.data.ResultCache
+import com.yuzhiplant.aiquota.data.SectionOrder
 import com.yuzhiplant.aiquota.data.Settings
 import com.yuzhiplant.aiquota.model.ProviderResult
 import com.yuzhiplant.aiquota.widget.QuotaWidgetProvider
@@ -32,8 +33,9 @@ object QuotaRepository {
                 supabase.await() + listOfNotNull(line.await(), drive.await()) + custom.awaitAll()
         }
         ResultCache.save(context, results)
+        val ordered = SectionOrder.apply(context, results)
         BudgetAlerts.check(context, results)
         QuotaWidgetProvider.updateAll(context)
-        results
+        ordered
     }
 }

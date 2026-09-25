@@ -25,6 +25,10 @@
         </activity>
 
         <activity
+            android:name=".ui.ReorderActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".ui.SettingsActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
