@@ -48,6 +48,16 @@ class Settings(context: Context) {
         get() = prefs.getString(KEY_VOYAGE_BUDGET, "0")?.toDoubleOrNull() ?: 0.0
         set(v) = prefs.edit().putString(KEY_VOYAGE_BUDGET, v.toString()).apply()
 
+    /** LINE 官方帳號 Channel access token（長效） */
+    var lineChannelToken: String
+        get() = prefs.getString(KEY_LINE_TOKEN, "") ?: ""
+        set(v) = prefs.edit().putString(KEY_LINE_TOKEN, v.filterNot { it.isWhitespace() }).apply()
+
+    /** 自行部署的 Apps Script 網址，回傳 Google Drive 用量 */
+    var driveUsageUrl: String
+        get() = prefs.getString(KEY_DRIVE_URL, "") ?: ""
+        set(v) = prefs.edit().putString(KEY_DRIVE_URL, v.trim()).apply()
+
     /** Supabase Personal Access Token（sbp_ 開頭） */
     var supabaseToken: String
         get() = prefs.getString(KEY_SUPABASE_TOKEN, "") ?: ""
@@ -94,6 +104,8 @@ class Settings(context: Context) {
         private const val KEY_VOYAGE_SECRET = "voyage_client_secret"
         private const val KEY_VOYAGE_ORG = "voyage_org_id"
         private const val KEY_VOYAGE_BUDGET = "voyage_monthly_budget"
+        private const val KEY_LINE_TOKEN = "line_channel_token"
+        private const val KEY_DRIVE_URL = "drive_usage_url"
         private const val KEY_SUPABASE_TOKEN = "supabase_token"
         private const val KEY_SUPABASE_REFS = "supabase_refs"
         private const val KEY_INTERVAL = "refresh_minutes"

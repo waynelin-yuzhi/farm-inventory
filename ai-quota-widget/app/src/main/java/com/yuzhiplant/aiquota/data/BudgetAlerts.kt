@@ -14,19 +14,27 @@ import androidx.core.content.ContextCompat
 import com.yuzhiplant.aiquota.R
 import com.yuzhiplant.aiquota.model.ProviderResult
 import com.yuzhiplant.aiquota.providers.ClaudeApiProvider
+import com.yuzhiplant.aiquota.providers.DriveProvider
+import com.yuzhiplant.aiquota.providers.LineProvider
 import com.yuzhiplant.aiquota.providers.VoyageProvider
 import com.yuzhiplant.aiquota.ui.MainActivity
 import java.time.LocalDate
 import java.time.ZoneOffset
 
 /**
- * 花費預算提醒：本月花費達預算 80%、100% 時各推播一次（每月重置）。
+ * 用量提醒：本月花費、LINE 訊息、Drive 空間達 80%、100% 時各推播一次（每月重置）。
  * 只針對有花錢的來源（Claude API、Voyage AI）。
  */
 object BudgetAlerts {
     const val CHANNEL = "budget_alerts"
     private const val PREFS = "budget_alerts"
-    private val COST_SOURCES = setOf(ClaudeApiProvider.ID, VoyageProvider.ID)
+    /** 來源 ID → 要監看的項目名稱開頭 */
+    private val WATCHED = mapOf(
+        ClaudeApiProvider.ID to "本月花費",
+        VoyageProvider.ID to "本月花費",
+        LineProvider.ID to "本月訊息",
+        DriveProvider.ID to "儲存空間",
+    )
     private val THRESHOLDS = listOf(100, 80)
 
     fun ensureChannel(context: Context) {
@@ -41,15 +49,21 @@ object BudgetAlerts {
         val month = LocalDate.now(ZoneOffset.UTC).toString().take(7)
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         for (r in results) {
-            if (r.id !in COST_SOURCES || r.error != null) continue
-            val item = r.items.firstOrNull { it.label.startsWith("本月花費") } ?: continue
+            val prefix = WATCHED[r.id] ?: continue
+            if (r.error != null) continue
+            val item = r.items.firstOrNull { it.label.startsWith(prefix) } ?: continue
             val pct = item.percent ?: continue
             val key = "${r.id}_$month"
             val notified = prefs.getInt(key, 0)
             val hit = THRESHOLDS.firstOrNull { pct >= it } ?: continue
             if (hit <= notified) continue
             prefs.edit().putInt(key, hit).apply()
-            val title = if (hit >= 100) "${r.name} 本月已超過預算" else "${r.name} 本月已用 ${Format.percent(pct)} 預算"
+            val title = when {
+                prefix == "本月花費" && hit >= 100 -> "${r.name} 本月已超過預算"
+                prefix == "本月花費" -> "${r.name} 本月已用 ${Format.percent(pct)} 預算"
+                hit >= 100 -> "${r.name} ${prefix}已用完"
+                else -> "${r.name} ${prefix}已用 ${Format.percent(pct)}"
+            }
             notify(context, r.id.hashCode(), title, item.detail)
         }
     }

@@ -1,5 +1,7 @@
 package com.yuzhiplant.aiquota.ui
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.widget.CheckBox
@@ -15,6 +17,7 @@ import com.yuzhiplant.aiquota.R
 import com.yuzhiplant.aiquota.data.Settings
 import com.yuzhiplant.aiquota.data.UpdateChecker
 import com.yuzhiplant.aiquota.model.CustomSource
+import com.yuzhiplant.aiquota.providers.DriveProvider
 import com.yuzhiplant.aiquota.work.RefreshScheduler
 import java.util.UUID
 
@@ -29,6 +32,8 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var voyageSecret: TextInputEditText
     private lateinit var voyageOrg: TextInputEditText
     private lateinit var voyageBudget: TextInputEditText
+    private lateinit var lineToken: TextInputEditText
+    private lateinit var driveUrl: TextInputEditText
     private lateinit var supabaseToken: TextInputEditText
     private lateinit var supabaseRefs: TextInputEditText
     private lateinit var customList: LinearLayout
@@ -50,6 +55,8 @@ class SettingsActivity : AppCompatActivity() {
         voyageSecret = findViewById(R.id.input_voyage_secret)
         voyageOrg = findViewById(R.id.input_voyage_org)
         voyageBudget = findViewById(R.id.input_voyage_budget)
+        lineToken = findViewById(R.id.input_line_token)
+        driveUrl = findViewById(R.id.input_drive_url)
         supabaseToken = findViewById(R.id.input_supabase_token)
         supabaseRefs = findViewById(R.id.input_supabase_refs)
 
@@ -61,6 +68,8 @@ class SettingsActivity : AppCompatActivity() {
         voyageSecret.setText(settings.voyageClientSecret)
         voyageOrg.setText(settings.voyageOrgId)
         settings.voyageMonthlyBudget.takeIf { it > 0 }?.let { voyageBudget.setText(trimNumber(it)) }
+        lineToken.setText(settings.lineChannelToken)
+        driveUrl.setText(settings.driveUsageUrl)
         supabaseToken.setText(settings.supabaseToken)
         supabaseRefs.setText(settings.supabaseProjectRefs)
         customSources += settings.customSources
@@ -83,6 +92,11 @@ class SettingsActivity : AppCompatActivity() {
             )
         }
         findViewById<MaterialButton>(R.id.btn_save).setOnClickListener { save() }
+        findViewById<MaterialButton>(R.id.btn_copy_gas).setOnClickListener {
+            val cm = getSystemService(ClipboardManager::class.java)
+            cm.setPrimaryClip(ClipData.newPlainText("Drive 用量程式碼", DriveProvider.GAS_SCRIPT))
+            Toast.makeText(this, "已複製，可貼到 LINE Keep 再到電腦上使用", Toast.LENGTH_LONG).show()
+        }
         findViewById<TextView>(R.id.text_version).text = "目前版本 ${UpdateChecker.currentVersionName(this)}"
         findViewById<MaterialButton>(R.id.btn_check_update).setOnClickListener { UpdateUi.check(this, manual = true) }
     }
@@ -97,6 +111,8 @@ class SettingsActivity : AppCompatActivity() {
         settings.voyageClientSecret = voyageSecret.text?.toString().orEmpty()
         settings.voyageOrgId = voyageOrg.text?.toString().orEmpty()
         settings.voyageMonthlyBudget = voyageBudget.text?.toString()?.toDoubleOrNull() ?: 0.0
+        settings.lineChannelToken = lineToken.text?.toString().orEmpty()
+        settings.driveUsageUrl = driveUrl.text?.toString().orEmpty()
         settings.supabaseToken = supabaseToken.text?.toString().orEmpty()
         settings.supabaseProjectRefs = supabaseRefs.text?.toString().orEmpty()
         val oldInterval = settings.refreshMinutes

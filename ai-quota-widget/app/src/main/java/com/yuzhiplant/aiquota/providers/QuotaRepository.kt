@@ -16,7 +16,7 @@ object QuotaRepository {
 
     /**
      * 平行抓取所有已設定的來源，存快取並刷新桌面小工具。
-     * 顯示順序即重要順序：API 花費 → Claude App 模型用量 → Voyage 花費 → Supabase → 自訂。
+     * 顯示順序即重要順序：API 花費 → Claude App 模型用量 → Voyage 花費 → Supabase → LINE → Drive → 自訂。
      */
     suspend fun refreshAll(context: Context): List<ProviderResult> = withContext(Dispatchers.IO) {
         val settings = Settings(context)
@@ -25,9 +25,11 @@ object QuotaRepository {
             val subscription = async { ClaudeSubscriptionProvider.fetch(context, settings) }
             val voyage = async { VoyageProvider.fetch(settings) }
             val supabase = async { SupabaseProvider.fetch(settings) }
+            val line = async { LineProvider.fetch(settings) }
+            val drive = async { DriveProvider.fetch(settings) }
             val custom = settings.customSources.map { src -> async { CustomJsonProvider.fetch(src) } }
             listOfNotNull(api.await(), subscription.await(), voyage.await()) +
-                supabase.await() + custom.awaitAll()
+                supabase.await() + listOfNotNull(line.await(), drive.await()) + custom.awaitAll()
         }
         ResultCache.save(context, results)
         BudgetAlerts.check(context, results)

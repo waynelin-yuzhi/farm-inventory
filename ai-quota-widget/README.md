@@ -10,6 +10,8 @@
 | Claude 訂閱（Pro / Max） | 5 小時時段 %、本週所有模型 %、本週各模型（Fable / Opus / Sonnet…）%、重置時間、額外用量 | claude.ai 的 `sessionKey` cookie |
 | Voyage AI | 本月花費 ÷ 月預算 %、預估月底花費（經 MongoDB Atlas 帳單） | Atlas 服務帳號 Client ID / Secret ＋ 組織 ID |
 | Supabase | 各專案資料庫大小、檔案儲存量（對比方案額度）、是否被暫停；組織本月流量 / MAU / Edge Function 次數（讀得到才顯示） | Access token（`sbp_…`） |
+| LINE 官方帳號 | 本月已發送訊息 ÷ 方案上限、剩餘則數 | Messaging API Channel access token |
+| Google Drive | 儲存空間已用 ÷ 上限 | 自行部署的 Apps Script 網址（程式碼見下方） |
 | 自訂 JSON API | 任一工具的用量 / 餘額（可算百分比） | 該工具的 API key |
 
 - 顏色：綠 < 70%、黃 70–89%、紅 ≥ 90%
@@ -50,6 +52,23 @@ Voyage 本身沒有用量 API，但帳單已併入 MongoDB Atlas，App 透過 At
 3. 優先用 Cost Explorer 只算「AI Model APIs / Automated Embedding / Native Reranking」；讀不到時退回本月未結帳單總額（會標示「Atlas 全部服務」）
 
 限制：剩餘免費 token 沒有 API 可查；若是在舊版 dash.voyageai.com 儲值計費（非 Atlas），目前沒有任何 API 可讀花費。
+
+**LINE Channel access token**
+developers.line.biz → 植間的 Provider → Messaging API channel → Messaging API 分頁 → Channel access token（long-lived）。就是植間系統發 LINE 用的同一組。
+
+**Google Drive 用量網址**
+script.google.com → 新專案 → 貼上以下程式碼 → 部署 → 新增部署作業 → 網頁應用程式（執行身分：我／存取權：所有人）→ 授權 → 複製網址：
+
+```javascript
+function doGet() {
+  var used = DriveApp.getStorageUsed();
+  var limit = DriveApp.getStorageLimit();
+  return ContentService.createTextOutput(JSON.stringify({ used: used, limit: limit }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+```
+
+LINE 訊息與 Drive 空間用到 80%、100% 也會推播提醒。
 
 **自訂來源範例**
 
