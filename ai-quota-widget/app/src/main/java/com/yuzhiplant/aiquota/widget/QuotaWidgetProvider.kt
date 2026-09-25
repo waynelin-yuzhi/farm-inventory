@@ -11,7 +11,9 @@ import android.widget.RemoteViews
 import com.yuzhiplant.aiquota.R
 import com.yuzhiplant.aiquota.data.Format
 import com.yuzhiplant.aiquota.data.ResultCache
+import com.yuzhiplant.aiquota.data.SectionOrder
 import com.yuzhiplant.aiquota.data.Settings
+import com.yuzhiplant.aiquota.data.WidgetVisibility
 import com.yuzhiplant.aiquota.data.usageLevel
 import com.yuzhiplant.aiquota.model.ProviderResult
 import com.yuzhiplant.aiquota.model.QuotaItem
@@ -66,7 +68,7 @@ class QuotaWidgetProvider : AppWidgetProvider() {
                 root.setViewVisibility(R.id.widget_empty, View.VISIBLE)
             } else {
                 root.setViewVisibility(R.id.widget_empty, View.GONE)
-                val sections = widgetSections(results)
+                val sections = widgetSections(results, WidgetVisibility.load(context))
                 if (Settings(context).widgetStyle == "A") {
                     var rows = 0
                     for ((index, section) in sections.withIndex()) {
@@ -125,14 +127,15 @@ class QuotaWidgetProvider : AppWidgetProvider() {
          * - 讀取失敗只顯示一行「⚠ 讀取失敗・點開查看」，不塞長錯誤訊息
          * - Supabase 多個專案合成一個區塊：用量 ≥ 50% 才列出，其餘收成一行摘要
          */
-        private fun widgetSections(results: List<ProviderResult>): List<Section> {
+        private fun widgetSections(results: List<ProviderResult>, vis: Map<String, Boolean>): List<Section> {
             val sections = mutableListOf<Section>()
             val supabase = results.filter { it.id.startsWith("supabase") }
             var supabaseAdded = false
             for (r in results) {
+                if (!WidgetVisibility.groupVisible(vis, SectionOrder.groupKey(r.id))) continue
                 if (r.id.startsWith("supabase")) {
                     if (!supabaseAdded) {
-                        sections += supabaseSection(supabase)
+                        sections += supabaseSection(supabase, vis)
                         supabaseAdded = true
                     }
                     continue
@@ -140,14 +143,14 @@ class QuotaWidgetProvider : AppWidgetProvider() {
                 val rows = if (r.error != null) {
                     listOf(WidgetRow("⚠ 讀取失敗", null, "點開查看", ""))
                 } else {
-                    r.items.filter { it.showInWidget }.map { toRow(it, it.label) }
+                    r.items.filter { WidgetVisibility.itemVisible(vis, r.id, it) }.map { toRow(it, it.label) }
                 }
                 if (rows.isNotEmpty()) sections += Section(r.name, rows)
             }
             return sections
         }
 
-        private fun supabaseSection(results: List<ProviderResult>): Section {
+        private fun supabaseSection(results: List<ProviderResult>, vis: Map<String, Boolean>): Section {
             val rows = mutableListOf<WidgetRow>()
             var ok = 0
             var paused = 0
@@ -159,8 +162,8 @@ class QuotaWidgetProvider : AppWidgetProvider() {
                     r.items.any { it.label == "專案狀態" } -> paused++
                     else -> if (!r.id.startsWith("supabase_org_")) ok++
                 }
-                // 只有用量偏高才值得佔一列
-                r.items.filter { (it.percent ?: 0.0) >= 50 }.forEach {
+                // 預設只有用量偏高才佔一列；使用者可在「排序與顯示」自行開關
+                r.items.filter { it.label != "專案狀態" && WidgetVisibility.itemVisible(vis, r.id, it) }.forEach {
                     rows += toRow(it, if (r.id.startsWith("supabase_org_")) it.label else "$project・${it.label}")
                 }
             }

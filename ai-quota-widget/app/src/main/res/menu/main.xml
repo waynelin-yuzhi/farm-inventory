@@ -4,7 +4,7 @@
     <item
         android:id="@+id/action_reorder"
         android:icon="@drawable/ic_reorder"
-        android:title="排序"
+        android:title="排序與顯示"
         app:showAsAction="always" />
     <item
         android:id="@+id/action_settings"
