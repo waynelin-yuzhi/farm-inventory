@@ -11,4 +11,5 @@
     <color name="level_warn">#F0B72F</color>
     <color name="level_bad">#EF6B62</color>
     <color name="widget_bg">#F21C201D</color>
+    <color name="section_bg">#252A26</color>
 </resources>

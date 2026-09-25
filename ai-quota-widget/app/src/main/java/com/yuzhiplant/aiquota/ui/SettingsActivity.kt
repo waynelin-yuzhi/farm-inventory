@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.widget.CheckBox
 import android.widget.LinearLayout
+import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -18,6 +19,7 @@ import com.yuzhiplant.aiquota.data.Settings
 import com.yuzhiplant.aiquota.data.UpdateChecker
 import com.yuzhiplant.aiquota.model.CustomSource
 import com.yuzhiplant.aiquota.providers.DriveProvider
+import com.yuzhiplant.aiquota.widget.QuotaWidgetProvider
 import com.yuzhiplant.aiquota.work.RefreshScheduler
 import java.util.UUID
 
@@ -92,6 +94,13 @@ class SettingsActivity : AppCompatActivity() {
             )
         }
         findViewById<MaterialButton>(R.id.btn_save).setOnClickListener { save() }
+        // 小工具樣式：選了就立即套用，不用按儲存
+        val styleGroup = findViewById<RadioGroup>(R.id.widget_style_group)
+        styleGroup.check(if (settings.widgetStyle == "A") R.id.widget_style_a else R.id.widget_style_b)
+        styleGroup.setOnCheckedChangeListener { _, id ->
+            settings.widgetStyle = if (id == R.id.widget_style_a) "A" else "B"
+            QuotaWidgetProvider.updateAll(this)
+        }
         findViewById<MaterialButton>(R.id.btn_copy_gas).setOnClickListener {
             val cm = getSystemService(ClipboardManager::class.java)
             cm.setPrimaryClip(ClipData.newPlainText("Drive 用量程式碼", DriveProvider.GAS_SCRIPT))

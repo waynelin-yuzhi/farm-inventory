@@ -11,6 +11,7 @@ import android.widget.RemoteViews
 import com.yuzhiplant.aiquota.R
 import com.yuzhiplant.aiquota.data.Format
 import com.yuzhiplant.aiquota.data.ResultCache
+import com.yuzhiplant.aiquota.data.Settings
 import com.yuzhiplant.aiquota.data.usageLevel
 import com.yuzhiplant.aiquota.model.ProviderResult
 import com.yuzhiplant.aiquota.model.QuotaItem
@@ -39,6 +40,7 @@ class QuotaWidgetProvider : AppWidgetProvider() {
     companion object {
         const val ACTION_REFRESH = "com.yuzhiplant.aiquota.action.REFRESH"
         private const val MAX_ROWS = 14
+        private const val MAX_CARDS = 7
 
         fun updateAll(context: Context, refreshing: Boolean = false) {
             val manager = AppWidgetManager.getInstance(context)
@@ -64,19 +66,24 @@ class QuotaWidgetProvider : AppWidgetProvider() {
                 root.setViewVisibility(R.id.widget_empty, View.VISIBLE)
             } else {
                 root.setViewVisibility(R.id.widget_empty, View.GONE)
-                var rows = 0
-                for ((index, section) in widgetSections(results).withIndex()) {
-                    if (rows >= MAX_ROWS) break
-                    val header = RemoteViews(pkg, R.layout.widget_header_row)
-                    header.setTextViewText(R.id.header_text, section.title)
-                    header.setViewVisibility(R.id.header_divider, if (index == 0) View.GONE else View.VISIBLE)
-                    root.addView(R.id.widget_rows, header)
-                    rows++
-                    for (row in section.rows) {
+                val sections = widgetSections(results)
+                if (Settings(context).widgetStyle == "A") {
+                    var rows = 0
+                    for ((index, section) in sections.withIndex()) {
                         if (rows >= MAX_ROWS) break
-                        root.addView(R.id.widget_rows, rowView(context, pkg, row))
+                        val header = RemoteViews(pkg, R.layout.widget_header_row)
+                        header.setTextViewText(R.id.header_text, section.title)
+                        header.setViewVisibility(R.id.header_divider, if (index == 0) View.GONE else View.VISIBLE)
+                        root.addView(R.id.widget_rows, header)
                         rows++
+                        for (row in section.rows) {
+                            if (rows >= MAX_ROWS) break
+                            root.addView(R.id.widget_rows, rowView(context, pkg, row))
+                            rows++
+                        }
                     }
+                } else {
+                    sections.take(MAX_CARDS).forEach { root.addView(R.id.widget_rows, cardView(context, pkg, it)) }
                 }
             }
 
@@ -97,7 +104,18 @@ class QuotaWidgetProvider : AppWidgetProvider() {
         }
 
         /** 小工具上的一列（已整理好要顯示的文字） */
-        private data class WidgetRow(val label: String, val percent: Double?, val value: String, val detail: String)
+        /**
+         * 小工具上的一列（已整理好要顯示的文字）。
+         * amount = 金額／容量（例如「$10.41 / $20」）；hint = 補充（預估月底、重置時間）。
+         */
+        private data class WidgetRow(
+            val label: String,
+            val percent: Double?,
+            val value: String,
+            val detail: String,
+            val amount: String = "",
+            val hint: String = "",
+        )
 
         private data class Section(val title: String, val rows: List<WidgetRow>)
 
@@ -159,8 +177,9 @@ class QuotaWidgetProvider : AppWidgetProvider() {
             val detail = listOf(item.shortDetail, Format.resetRelative(item.resetAt, short = true))
                 .filter { it.isNotEmpty() }
                 .joinToString("・")
+            val hint = item.hint.ifEmpty { Format.resetRelative(item.resetAt, short = true) }
             return if (item.percent != null) {
-                WidgetRow(label, item.percent, Format.percent(item.percent), detail)
+                WidgetRow(label, item.percent, Format.percent(item.percent), detail, item.shortDetail, hint)
             } else {
                 WidgetRow(label, null, item.shortDetail.ifEmpty { item.detail }, "")
             }
@@ -185,6 +204,90 @@ class QuotaWidgetProvider : AppWidgetProvider() {
             v.setTextViewText(R.id.row_detail, row.detail)
             v.setViewVisibility(R.id.row_detail, if (row.detail.isEmpty()) View.GONE else View.VISIBLE)
             return v
+        }
+
+        /**
+         * 方案 B：一個來源一張卡片。
+         * - 只有一個百分比項目 → 大數字（金額或百分比）＋ 進度條 ＋ 補充
+         * - 兩個以上 → 兩兩並排的小格
+         * - 沒有百分比的項目（摘要、警示）→ 單行
+         */
+        private fun cardView(context: Context, pkg: String, section: Section): RemoteViews {
+            val card = RemoteViews(pkg, R.layout.widget_section)
+            card.setTextViewText(R.id.section_title, section.title.uppercase())
+            val gauges = section.rows.filter { it.percent != null }
+            if (gauges.size == 1) {
+                card.addView(R.id.section_body, heroView(context, pkg, gauges[0]))
+            } else {
+                gauges.chunked(2).forEach { card.addView(R.id.section_body, pairView(context, pkg, it)) }
+            }
+            section.rows.filter { it.percent == null }.forEach { row ->
+                val v = RemoteViews(pkg, R.layout.widget_simple_row)
+                v.setTextViewText(R.id.simple_label, row.label)
+                v.setTextViewText(R.id.simple_value, row.value)
+                if (row.label.startsWith("⚠")) v.setTextColor(R.id.simple_value, context.getColor(R.color.level_bad))
+                card.addView(R.id.section_body, v)
+            }
+            return card
+        }
+
+        private fun heroView(context: Context, pkg: String, row: WidgetRow): RemoteViews {
+            val v = RemoteViews(pkg, R.layout.widget_hero)
+            val percent = row.percent ?: 0.0
+            // 有金額／容量就把它當大數字（$10.41），後面接「/ $20」；沒有就直接放大百分比
+            val parts = row.amount.split(" / ", limit = 2)
+            if (row.amount.isNotEmpty() && parts.size == 2) {
+                v.setTextViewText(R.id.hero_big, parts[0])
+                v.setTextViewText(R.id.hero_sub, "/ ${parts[1]}　${row.label}")
+                v.setTextViewText(R.id.hero_pct, row.value)
+            } else {
+                v.setTextViewText(R.id.hero_big, row.value)
+                v.setTextViewText(R.id.hero_sub, row.label)
+                v.setViewVisibility(R.id.hero_pct, View.GONE)
+            }
+            tintValue(context, v, R.id.hero_pct, percent)
+            tintValue(context, v, R.id.hero_big, if (parts.size == 2) 0.0 else percent)
+            setBar(v, intArrayOf(R.id.hero_bar_ok, R.id.hero_bar_warn, R.id.hero_bar_bad), percent)
+            v.setTextViewText(R.id.hero_detail, row.hint)
+            v.setViewVisibility(R.id.hero_detail, if (row.hint.isEmpty()) View.GONE else View.VISIBLE)
+            return v
+        }
+
+        private fun pairView(context: Context, pkg: String, rows: List<WidgetRow>): RemoteViews {
+            val v = RemoteViews(pkg, R.layout.widget_pair)
+            val cells = listOf(
+                arrayOf(R.id.cell1, R.id.cell1_pct, R.id.cell1_label, R.id.cell1_detail, R.id.cell1_bar_ok, R.id.cell1_bar_warn, R.id.cell1_bar_bad),
+                arrayOf(R.id.cell2, R.id.cell2_pct, R.id.cell2_label, R.id.cell2_detail, R.id.cell2_bar_ok, R.id.cell2_bar_warn, R.id.cell2_bar_bad),
+            )
+            cells.forEachIndexed { i, ids ->
+                val row = rows.getOrNull(i)
+                if (row == null) {
+                    v.setViewVisibility(ids[0], View.INVISIBLE)
+                    return@forEachIndexed
+                }
+                val percent = row.percent ?: 0.0
+                v.setTextViewText(ids[1], row.value)
+                tintValue(context, v, ids[1], percent)
+                v.setTextViewText(ids[2], row.label)
+                val detail = row.hint.ifEmpty { row.amount }
+                v.setTextViewText(ids[3], detail)
+                v.setViewVisibility(ids[3], if (detail.isEmpty()) View.GONE else View.VISIBLE)
+                setBar(v, intArrayOf(ids[4], ids[5], ids[6]), percent)
+            }
+            return v
+        }
+
+        private fun setBar(v: RemoteViews, bars: IntArray, percent: Double) {
+            val level = usageLevel(percent)
+            bars.forEachIndexed { i, id -> v.setViewVisibility(id, if (i == level) View.VISIBLE else View.GONE) }
+            v.setProgressBar(bars[level], 100, percent.coerceIn(0.0, 100.0).toInt(), false)
+        }
+
+        private fun tintValue(context: Context, v: RemoteViews, id: Int, percent: Double) {
+            when (usageLevel(percent)) {
+                1 -> v.setTextColor(id, context.getColor(R.color.level_warn))
+                2 -> v.setTextColor(id, context.getColor(R.color.level_bad))
+            }
         }
     }
 }

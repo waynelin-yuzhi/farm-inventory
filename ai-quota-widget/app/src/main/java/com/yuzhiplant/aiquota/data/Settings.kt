@@ -68,6 +68,11 @@ class Settings(context: Context) {
         get() = prefs.getString(KEY_SUPABASE_REFS, "") ?: ""
         set(v) = prefs.edit().putString(KEY_SUPABASE_REFS, v.trim()).apply()
 
+    /** 小工具樣式："A" 精簡列表、"B" 大數字卡片 */
+    var widgetStyle: String
+        get() = prefs.getString(KEY_WIDGET_STYLE, "B") ?: "B"
+        set(v) = prefs.edit().putString(KEY_WIDGET_STYLE, v).apply()
+
     var refreshMinutes: Int
         get() = prefs.getInt(KEY_INTERVAL, 30)
         set(v) = prefs.edit().putInt(KEY_INTERVAL, v.coerceAtLeast(15)).apply()
@@ -108,6 +113,7 @@ class Settings(context: Context) {
         private const val KEY_DRIVE_URL = "drive_usage_url"
         private const val KEY_SUPABASE_TOKEN = "supabase_token"
         private const val KEY_SUPABASE_REFS = "supabase_refs"
+        private const val KEY_WIDGET_STYLE = "widget_style"
         private const val KEY_INTERVAL = "refresh_minutes"
         private const val KEY_CUSTOM = "custom_sources"
 

@@ -20,8 +20,8 @@
             android:layout_weight="1"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textColor="@color/text_primary"
-            android:textSize="13sp" />
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
 
         <TextView
             android:id="@+id/row_value"
@@ -32,7 +32,7 @@
             android:maxWidth="160dp"
             android:maxLines="1"
             android:textColor="@color/text_primary"
-            android:textSize="13sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
     </LinearLayout>
 

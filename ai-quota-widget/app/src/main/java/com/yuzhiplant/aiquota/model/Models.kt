@@ -14,6 +14,8 @@ data class QuotaItem(
     val shortDetail: String = "",
     /** 額度重置時間（epoch ms），0 表示沒有；畫面顯示時才換算成「3 小時後重置」 */
     val resetAt: Long = 0,
+    /** 小工具大數字卡片下方的補充說明，例如「預估月底 $12.66」 */
+    val hint: String = "",
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("label", label)
@@ -22,6 +24,7 @@ data class QuotaItem(
         .put("showInWidget", showInWidget)
         .put("shortDetail", shortDetail)
         .put("resetAt", resetAt)
+        .put("hint", hint)
 
     companion object {
         fun fromJson(o: JSONObject) = QuotaItem(
@@ -31,6 +34,7 @@ data class QuotaItem(
             showInWidget = o.optBoolean("showInWidget", true),
             shortDetail = o.optString("shortDetail"),
             resetAt = o.optLong("resetAt"),
+            hint = o.optString("hint"),
         )
     }
 }

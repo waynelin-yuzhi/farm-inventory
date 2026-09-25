@@ -376,6 +376,37 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="24dp"
+                    android:text="桌面小工具樣式"
+                    android:textColor="@color/brand"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <RadioGroup
+                    android:id="@+id/widget_style_group"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:orientation="vertical">
+
+                    <RadioButton
+                        android:id="@+id/widget_style_b"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
+                        android:text="B・大數字卡片（每個服務一張卡，重點數字放大）" />
+
+                    <RadioButton
+                        android:id="@+id/widget_style_a"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
+                        android:text="A・精簡列表（同樣大小能放比較多項目）" />
+                </RadioGroup>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
                     android:text="App 更新"
                     android:textColor="@color/brand"
                     android:textSize="15sp"

@@ -24,6 +24,7 @@ object MonthlyCost {
                 spent / budget * 100,
                 "${Format.usd(spent)} / ${Format.usd(budget)}・預估月底 ${Format.usd(projected)}",
                 shortDetail = "${Format.usd(spent)} / ${Format.usdShort(budget)}",
+                hint = "預估月底 ${Format.usd(projected)}",
             )
         } else {
             QuotaItem("本月花費", null, "${Format.usd(spent)}（未設月預算）")

@@ -12,4 +12,5 @@
     <color name="level_bad">#C7362F</color>
     <color name="widget_bg">#F2FFFFFF</color>
     <color name="ic_bg">#2F6B4F</color>
+    <color name="section_bg">#F4F6F3</color>
 </resources>
