@@ -48,8 +48,9 @@ object SupabaseProvider {
             return listOf(ProviderResult("supabase", "Supabase", emptyList(), "讀取失敗：${e.message}", now))
         }
 
-        val wanted = settings.supabaseProjectRefs.split(',', ' ', '\n')
-            .map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+        // 選擇清單存的是 project ref；舊版手打的也可能是專案名稱，兩者都認（不分大小寫）
+        val wanted = settings.supabaseProjectRefs.split(',', '\n')
+            .map { it.trim().lowercase() }.filter { it.isNotEmpty() }.toSet()
         val planCache = mutableMapOf<String, String>()
         val results = mutableListOf<ProviderResult>()
         val orgSlugs = linkedSetOf<String>()
@@ -57,7 +58,7 @@ object SupabaseProvider {
         for (i in 0 until projects.length()) {
             val p = projects.getJSONObject(i)
             val ref = p.optString("ref")
-            if (wanted.isNotEmpty() && ref !in wanted) continue
+            if (wanted.isNotEmpty() && ref.lowercase() !in wanted && p.optString("name").trim().lowercase() !in wanted) continue
             val status = p.optString("status")
             if (status == "REMOVED") continue
             val slug = p.optString("organization_slug")
@@ -70,6 +71,16 @@ object SupabaseProvider {
         }
         for (slug in orgSlugs) orgUsage(slug, headers, now)?.let { results += it }
         return results
+    }
+
+    data class ProjectInfo(val ref: String, val name: String, val status: String)
+
+    /** 列出帳號下所有專案（設定頁的「選擇專案」用）。請在 Dispatchers.IO 呼叫。 */
+    fun listProjects(token: String): List<ProjectInfo> {
+        val arr = JSONArray(Http.get("$BASE/v1/projects", mapOf("Authorization" to "Bearer $token", "Accept" to "application/json")))
+        return (0 until arr.length()).map { arr.getJSONObject(it) }
+            .filter { it.optString("status") != "REMOVED" }
+            .map { ProjectInfo(it.optString("ref"), it.optString("name", it.optString("ref")), it.optString("status")) }
     }
 
     private fun projectResult(p: JSONObject, plan: String, headers: Map<String, String>, now: Long): ProviderResult {

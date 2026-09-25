@@ -19,6 +19,12 @@ import com.yuzhiplant.aiquota.data.Settings
 import com.yuzhiplant.aiquota.data.UpdateChecker
 import com.yuzhiplant.aiquota.model.CustomSource
 import com.yuzhiplant.aiquota.providers.DriveProvider
+import com.yuzhiplant.aiquota.providers.SupabaseProvider
+import com.yuzhiplant.aiquota.data.Http
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.yuzhiplant.aiquota.widget.QuotaWidgetProvider
 import com.yuzhiplant.aiquota.work.RefreshScheduler
 import java.util.UUID
@@ -37,7 +43,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var lineToken: TextInputEditText
     private lateinit var driveUrl: TextInputEditText
     private lateinit var supabaseToken: TextInputEditText
-    private lateinit var supabaseRefs: TextInputEditText
+    private lateinit var supabaseProjectsText: TextView
     private lateinit var customList: LinearLayout
     private val customSources = mutableListOf<CustomSource>()
 
@@ -60,7 +66,7 @@ class SettingsActivity : AppCompatActivity() {
         lineToken = findViewById(R.id.input_line_token)
         driveUrl = findViewById(R.id.input_drive_url)
         supabaseToken = findViewById(R.id.input_supabase_token)
-        supabaseRefs = findViewById(R.id.input_supabase_refs)
+        supabaseProjectsText = findViewById(R.id.text_supabase_projects)
 
         sessionKey.setText(settings.claudeSessionKey)
         adminKey.setText(settings.anthropicAdminKey)
@@ -73,7 +79,8 @@ class SettingsActivity : AppCompatActivity() {
         lineToken.setText(settings.lineChannelToken)
         driveUrl.setText(settings.driveUsageUrl)
         supabaseToken.setText(settings.supabaseToken)
-        supabaseRefs.setText(settings.supabaseProjectRefs)
+        updateProjectSummary()
+        findViewById<MaterialButton>(R.id.btn_pick_projects).setOnClickListener { pickProjects() }
         customSources += settings.customSources
         renderCustom()
 
@@ -123,13 +130,64 @@ class SettingsActivity : AppCompatActivity() {
         settings.lineChannelToken = lineToken.text?.toString().orEmpty()
         settings.driveUsageUrl = driveUrl.text?.toString().orEmpty()
         settings.supabaseToken = supabaseToken.text?.toString().orEmpty()
-        settings.supabaseProjectRefs = supabaseRefs.text?.toString().orEmpty()
         val oldInterval = settings.refreshMinutes
         settings.refreshMinutes = interval.text?.toString()?.toIntOrNull() ?: 30
         settings.customSources = customSources.toList()
         if (settings.refreshMinutes != oldInterval) RefreshScheduler.ensurePeriodic(this, replace = true)
         Toast.makeText(this, "已儲存", Toast.LENGTH_SHORT).show()
         finish()
+    }
+
+    private fun updateProjectSummary() {
+        val refs = settings.supabaseProjectRefs.split(',', '\n').map { it.trim() }.filter { it.isNotEmpty() }
+        supabaseProjectsText.text = if (refs.isEmpty()) "顯示全部專案" else "只顯示 ${refs.size} 個專案"
+    }
+
+    /** 用目前填的 token 讀出所有專案，讓使用者勾選要顯示哪些（全選 = 全部，含日後新增的）。 */
+    private fun pickProjects() {
+        val token = supabaseToken.text?.toString()?.trim().orEmpty()
+        if (token.isEmpty()) {
+            Toast.makeText(this, "請先貼上 Supabase Access token", Toast.LENGTH_LONG).show()
+            return
+        }
+        lifecycleScope.launch {
+            val projects = try {
+                withContext(Dispatchers.IO) { SupabaseProvider.listProjects(token) }
+            } catch (e: Exception) {
+                val msg = if (e is Http.HttpException && e.code == 401) "Token 無效，請確認是否複製完整" else "讀取專案失敗：${e.message}"
+                Toast.makeText(this@SettingsActivity, msg, Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            if (projects.isEmpty()) {
+                Toast.makeText(this@SettingsActivity, "這個帳號沒有任何專案", Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            val current = settings.supabaseProjectRefs.split(',', '\n').map { it.trim().lowercase() }.filter { it.isNotEmpty() }.toSet()
+            val checked = BooleanArray(projects.size) { i ->
+                current.isEmpty() || projects[i].ref.lowercase() in current || projects[i].name.lowercase() in current
+            }
+            val labels = projects.map<SupabaseProvider.ProjectInfo, CharSequence> { p ->
+                if (p.status == "ACTIVE_HEALTHY") p.name else "${p.name}（已暫停）"
+            }.toTypedArray()
+            MaterialAlertDialogBuilder(this@SettingsActivity)
+                .setTitle("要顯示哪些專案？")
+                .setMultiChoiceItems(labels, checked) { _, i, on -> checked[i] = on }
+                .setNegativeButton("取消", null)
+                .setPositiveButton("確定") { _, _ ->
+                    if (checked.none { it }) {
+                        Toast.makeText(this@SettingsActivity, "至少要選一個專案", Toast.LENGTH_LONG).show()
+                        return@setPositiveButton
+                    }
+                    settings.supabaseToken = token
+                    settings.supabaseProjectRefs = if (checked.all { it }) {
+                        ""
+                    } else {
+                        projects.filterIndexed { i, _ -> checked[i] }.joinToString(",") { it.ref }
+                    }
+                    updateProjectSummary()
+                }
+                .show()
+        }
     }
 
     private fun renderCustom() {
