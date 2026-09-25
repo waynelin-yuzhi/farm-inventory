@@ -20,6 +20,7 @@ import com.yuzhiplant.aiquota.R
 import com.yuzhiplant.aiquota.data.BudgetAlerts
 import com.yuzhiplant.aiquota.data.Format
 import com.yuzhiplant.aiquota.data.ResultCache
+import com.yuzhiplant.aiquota.data.UpdateChecker
 import com.yuzhiplant.aiquota.data.usageLevel
 import com.yuzhiplant.aiquota.model.ProviderResult
 import com.yuzhiplant.aiquota.providers.QuotaRepository
@@ -66,6 +67,15 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         render(ResultCache.load(this))
         refresh()
+        // 從「有新版本」通知點進來時一定檢查；平常最多每小時檢查一次
+        val fromNotification = intent.getBooleanExtra(UpdateChecker.EXTRA_CHECK_UPDATE, false)
+        if (fromNotification) intent.removeExtra(UpdateChecker.EXTRA_CHECK_UPDATE)
+        UpdateUi.check(this, manual = fromNotification)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
     }
 
     private fun refresh() {

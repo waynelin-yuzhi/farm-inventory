@@ -36,6 +36,18 @@ jobs:
           ./gradlew assembleRelease --no-daemon --stacktrace
           cp app/build/outputs/apk/release/app-release.apk ai-quota-widget.apk
 
+      # App 內「線上更新」讀這個檔案判斷有沒有新版
+      - name: Write version.json
+        env:
+          NOTES: ${{ github.event.head_commit.message }}
+        run: |
+          jq -n \
+            --argjson code "$GITHUB_RUN_NUMBER" \
+            --arg name "1.0.$GITHUB_RUN_NUMBER" \
+            --arg notes "$(printf '%s' "$NOTES" | grep -v -e '^Co-Authored-By:' -e '^Claude-Session:' || true)" \
+            '{versionCode: $code, versionName: $name, notes: $notes}' > version.json
+          cat version.json
+
       - uses: actions/upload-artifact@v4
         with:
           name: ai-quota-widget-apk
@@ -49,7 +61,9 @@ jobs:
           name: AI 額度 App（最新版）
           prerelease: true
           make_latest: false
-          files: ai-quota-widget/ai-quota-widget.apk
+          files: |
+            ai-quota-widget/ai-quota-widget.apk
+            ai-quota-widget/version.json
           body: |
             手機下載下方 ai-quota-widget.apk 安裝即可（需允許「安裝未知應用程式」）。
             最新建置：${{ github.ref_name }} @ ${{ github.sha }}

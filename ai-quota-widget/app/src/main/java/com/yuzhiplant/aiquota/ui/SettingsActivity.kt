@@ -13,6 +13,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.yuzhiplant.aiquota.R
 import com.yuzhiplant.aiquota.data.Settings
+import com.yuzhiplant.aiquota.data.UpdateChecker
 import com.yuzhiplant.aiquota.model.CustomSource
 import com.yuzhiplant.aiquota.work.RefreshScheduler
 import java.util.UUID
@@ -82,6 +83,8 @@ class SettingsActivity : AppCompatActivity() {
             )
         }
         findViewById<MaterialButton>(R.id.btn_save).setOnClickListener { save() }
+        findViewById<TextView>(R.id.text_version).text = "目前版本 ${UpdateChecker.currentVersionName(this)}"
+        findViewById<MaterialButton>(R.id.btn_check_update).setOnClickListener { UpdateUi.check(this, manual = true) }
     }
 
     private fun save() {

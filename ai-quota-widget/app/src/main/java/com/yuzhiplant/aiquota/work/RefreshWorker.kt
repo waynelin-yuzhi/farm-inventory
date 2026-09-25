@@ -11,12 +11,14 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.yuzhiplant.aiquota.data.Settings
+import com.yuzhiplant.aiquota.data.UpdateChecker
 import com.yuzhiplant.aiquota.providers.QuotaRepository
 import java.util.concurrent.TimeUnit
 
 class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result = try {
         QuotaRepository.refreshAll(applicationContext)
+        UpdateChecker.notifyIfAvailable(applicationContext)
         Result.success()
     } catch (e: Exception) {
         Result.retry()
