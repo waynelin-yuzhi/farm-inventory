@@ -18,7 +18,7 @@ import java.time.ZoneOffset
  */
 object VoyageProvider {
     const val ID = "voyage"
-    private const val NAME = "Voyage AI"
+    private const val NAME = "Voyage AI 花費"
     private const val BASE = "https://cloud.mongodb.com"
     private const val ACCEPT = "application/vnd.atlas.2023-01-01+json"
     private val AI_SERVICES = listOf("AI Model APIs", "Automated Embedding", "Native Reranking")

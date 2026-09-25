@@ -23,6 +23,7 @@ import com.yuzhiplant.aiquota.data.ResultCache
 import com.yuzhiplant.aiquota.data.UpdateChecker
 import com.yuzhiplant.aiquota.data.usageLevel
 import com.yuzhiplant.aiquota.model.ProviderResult
+import com.yuzhiplant.aiquota.model.QuotaItem
 import com.yuzhiplant.aiquota.providers.QuotaRepository
 import kotlinx.coroutines.launch
 
@@ -90,7 +91,11 @@ class MainActivity : AppCompatActivity() {
     private fun render(results: List<ProviderResult>) {
         container.removeAllViews()
         empty.visibility = if (results.isEmpty()) View.VISIBLE else View.GONE
+        if (results.isEmpty()) return
         val inflater = LayoutInflater.from(this)
+
+        container.addView(attentionCard(inflater, results))
+
         for (r in results) {
             val card = inflater.inflate(R.layout.item_provider, container, false)
             card.findViewById<TextView>(R.id.provider_name).text = r.name
@@ -100,30 +105,73 @@ class MainActivity : AppCompatActivity() {
             err.text = r.error ?: ""
 
             val rows = card.findViewById<LinearLayout>(R.id.provider_rows)
-            for (item in r.items) {
-                val row = inflater.inflate(R.layout.item_quota_row, rows, false)
-                row.findViewById<TextView>(R.id.quota_label).text = item.label
-                val value = row.findViewById<TextView>(R.id.quota_value)
-                val bar = row.findViewById<LinearProgressIndicator>(R.id.quota_bar)
-                val detail = row.findViewById<TextView>(R.id.quota_detail)
-                val p = item.percent
-                if (p != null) {
-                    value.text = Format.percent(p)
-                    bar.visibility = View.VISIBLE
-                    bar.max = 100
-                    bar.progress = p.coerceIn(0.0, 100.0).toInt()
-                    bar.setIndicatorColor(ContextCompat.getColor(this, levelColor(usageLevel(p))))
-                    detail.text = item.detail
-                    detail.visibility = if (item.detail.isEmpty()) View.GONE else View.VISIBLE
-                } else {
-                    value.text = item.detail
-                    bar.visibility = View.GONE
-                    detail.visibility = View.GONE
-                }
-                rows.addView(row)
-            }
+            for (item in r.items) addRow(inflater, rows, item, item.label)
             container.addView(card)
         }
+    }
+
+    /**
+     * 最上方的摘要卡：把 80% 以上、預估超支、讀取失敗的項目集中列出，
+     * 打開 App 第一眼就知道有沒有事要處理。
+     */
+    private fun attentionCard(inflater: LayoutInflater, results: List<ProviderResult>): View {
+        val card = inflater.inflate(R.layout.item_provider, container, false)
+        val rows = card.findViewById<LinearLayout>(R.id.provider_rows)
+        var count = 0
+        for (r in results) {
+            if (r.error != null) {
+                addRow(inflater, rows, QuotaItem("讀取失敗", null, "往下查看原因"), "${r.name}・讀取失敗", forceWarn = true)
+                count++
+                continue
+            }
+            for (item in r.items) {
+                val hot = (item.percent ?: 0.0) >= 80 || item.label.startsWith("⚠")
+                if (!hot) continue
+                addRow(inflater, rows, item, "${r.name}・${item.label.removePrefix("⚠ ")}", forceWarn = item.percent == null)
+                count++
+            }
+        }
+        val title = card.findViewById<TextView>(R.id.provider_name)
+        val sub = card.findViewById<TextView>(R.id.provider_updated)
+        if (count == 0) {
+            title.text = "✓ 一切正常"
+            title.setTextColor(ContextCompat.getColor(this, R.color.level_ok))
+            sub.text = "所有額度都在 80% 以下"
+        } else {
+            title.text = "需要注意"
+            title.setTextColor(ContextCompat.getColor(this, R.color.level_bad))
+            sub.text = "$count 項"
+        }
+        return card
+    }
+
+    private fun addRow(inflater: LayoutInflater, parent: LinearLayout, item: QuotaItem, label: String, forceWarn: Boolean = false) {
+        val row = inflater.inflate(R.layout.item_quota_row, parent, false)
+        row.findViewById<TextView>(R.id.quota_label).text = label
+        val value = row.findViewById<TextView>(R.id.quota_value)
+        val bar = row.findViewById<LinearProgressIndicator>(R.id.quota_bar)
+        val detail = row.findViewById<TextView>(R.id.quota_detail)
+        val p = item.percent
+        if (p != null) {
+            val level = usageLevel(p)
+            value.text = Format.percent(p)
+            if (level > 0) value.setTextColor(ContextCompat.getColor(this, levelColor(level)))
+            bar.visibility = View.VISIBLE
+            bar.max = 100
+            bar.progress = p.coerceIn(0.0, 100.0).toInt()
+            bar.setIndicatorColor(ContextCompat.getColor(this, levelColor(level)))
+            val text = listOf(item.detail, Format.resetRelative(item.resetAt))
+                .filter { it.isNotEmpty() }
+                .joinToString("・")
+            detail.text = text
+            detail.visibility = if (text.isEmpty()) View.GONE else View.VISIBLE
+        } else {
+            value.text = item.detail
+            if (forceWarn) value.setTextColor(ContextCompat.getColor(this, R.color.level_bad))
+            bar.visibility = View.GONE
+            detail.visibility = View.GONE
+        }
+        parent.addView(row)
     }
 
     private fun levelColor(level: Int) = when (level) {

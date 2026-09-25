@@ -19,7 +19,7 @@ import java.time.temporal.ChronoUnit
  */
 object ClaudeApiProvider {
     const val ID = "claude_api"
-    private const val NAME = "Claude API"
+    private const val NAME = "Claude API 花費"
 
     fun fetch(settings: Settings): ProviderResult? {
         val key = settings.anthropicAdminKey

@@ -21,7 +21,7 @@ import kotlinx.coroutines.withContext
  */
 object ClaudeSubscriptionProvider {
     const val ID = "claude_subscription"
-    private const val NAME = "Claude 訂閱"
+    private const val NAME = "Claude App 用量"
     private const val BASE = "https://claude.ai/api"
     private const val UA =
         "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Mobile Safari/537.36"
@@ -133,12 +133,20 @@ object ClaudeSubscriptionProvider {
             if (o.isNull("utilization")) continue
             val util = o.optDouble("utilization", Double.NaN)
             if (util.isNaN()) continue
-            val details = mutableListOf<String>()
+            var money = ""
             if (o.has("used_credits") && o.has("monthly_limit") && !o.isNull("monthly_limit")) {
-                details += "${Format.usd(o.optDouble("used_credits") / 100)} / ${Format.usd(o.optDouble("monthly_limit") / 100)}"
+                money = "${Format.usdShort(o.optDouble("used_credits") / 100)} / ${Format.usdShort(o.optDouble("monthly_limit") / 100)}"
             }
-            Format.resetsAt(o.optString("resets_at")).takeIf { it.isNotEmpty() }?.let { details += it }
-            items += QuotaItem(labelFor(key), util, details.joinToString("・"))
+            // 認得的額度才上小工具；內部代號（例如 iguana_necktie）只在 App 內列出
+            val known = key in labels || key.startsWith("seven_day_")
+            items += QuotaItem(
+                label = labelFor(key),
+                percent = util,
+                detail = money,
+                showInWidget = known,
+                shortDetail = money,
+                resetAt = Format.parseIso(o.optString("resets_at")),
+            )
         }
         return items
     }
@@ -148,6 +156,6 @@ object ClaudeSubscriptionProvider {
             "本週・" + key.removePrefix("seven_day_").replace('_', ' ')
                 .replaceFirstChar { it.uppercase() }
         } else {
-            key.replace('_', ' ')
+            "其他額度・" + key.replace('_', ' ')
         }
 }

@@ -30,6 +30,7 @@ object LineProvider {
                     "本月訊息",
                     used * 100.0 / limit,
                     "${Format.number(used.toDouble())} / ${Format.number(limit.toDouble())} 則・剩 ${Format.number((limit - used).coerceAtLeast(0).toDouble())} 則",
+                    shortDetail = "剩 ${Format.number((limit - used).coerceAtLeast(0).toDouble())} 則",
                 )
             } else {
                 QuotaItem("本月訊息", null, "${Format.number(used.toDouble())} 則（方案無上限）")

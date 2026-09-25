@@ -1,10 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<TextView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/header_text"
+<!-- 區塊標題：上方細分隔線（第一個區塊隱藏）＋ 小字標題 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingTop="6dp"
-    android:paddingBottom="1dp"
-    android:textColor="@color/brand"
-    android:textSize="11sp"
-    android:textStyle="bold" />
+    android:orientation="vertical">
+
+    <FrameLayout
+        android:id="@+id/header_divider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="6dp"
+        android:background="@color/track" />
+
+    <TextView
+        android:id="@+id/header_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="6dp"
+        android:paddingBottom="1dp"
+        android:textColor="@color/brand"
+        android:textSize="11sp"
+        android:textStyle="bold" />
+</LinearLayout>

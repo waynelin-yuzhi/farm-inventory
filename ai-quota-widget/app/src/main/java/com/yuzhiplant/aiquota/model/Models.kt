@@ -10,12 +10,18 @@ data class QuotaItem(
     val detail: String,
     /** false：只在 App 內顯示，桌面小工具略過（節省空間） */
     val showInWidget: Boolean = true,
+    /** 小工具用的精簡說明，例如「$10.41 / $20」「64 MB / 8 GB」；空白時不顯示 */
+    val shortDetail: String = "",
+    /** 額度重置時間（epoch ms），0 表示沒有；畫面顯示時才換算成「3 小時後重置」 */
+    val resetAt: Long = 0,
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("label", label)
         .put("percent", percent ?: JSONObject.NULL)
         .put("detail", detail)
         .put("showInWidget", showInWidget)
+        .put("shortDetail", shortDetail)
+        .put("resetAt", resetAt)
 
     companion object {
         fun fromJson(o: JSONObject) = QuotaItem(
@@ -23,6 +29,8 @@ data class QuotaItem(
             percent = if (o.isNull("percent")) null else o.optDouble("percent"),
             detail = o.optString("detail"),
             showInWidget = o.optBoolean("showInWidget", true),
+            shortDetail = o.optString("shortDetail"),
+            resetAt = o.optLong("resetAt"),
         )
     }
 }

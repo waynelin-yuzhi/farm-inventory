@@ -42,6 +42,7 @@ object DriveProvider {
                     "儲存空間",
                     used / limit * 100,
                     "${Format.bytes(used)} / ${Format.bytes(limit)}・剩 ${Format.bytes((limit - used).coerceAtLeast(0.0))}",
+                    shortDetail = "${Format.bytesShort(used)} / ${Format.bytesShort(limit)}",
                 )
             } else {
                 QuotaItem("儲存空間", null, "${Format.bytes(used)}（無上限）")

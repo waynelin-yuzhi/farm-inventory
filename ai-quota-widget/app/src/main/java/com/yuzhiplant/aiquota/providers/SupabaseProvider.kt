@@ -91,10 +91,16 @@ object SupabaseProvider {
             val (dbLimit, storageLimit) = planLimits[plan] ?: planLimits.getValue("free")
             val items = mutableListOf<QuotaItem>()
             row.optDouble("db_bytes").takeIf { !it.isNaN() }?.let {
-                items += QuotaItem("資料庫大小", it / dbLimit * 100, "${Format.bytes(it)} / ${Format.bytes(dbLimit)}")
+                items += QuotaItem(
+                    "資料庫大小", it / dbLimit * 100, "${Format.bytes(it)} / ${Format.bytes(dbLimit)}",
+                    shortDetail = "${Format.bytesShort(it)} / ${Format.bytesShort(dbLimit)}",
+                )
             }
             row.optDouble("storage_bytes").takeIf { !it.isNaN() }?.let {
-                items += QuotaItem("檔案儲存", it / storageLimit * 100, "${Format.bytes(it)} / ${Format.bytes(storageLimit)}")
+                items += QuotaItem(
+                    "檔案儲存", it / storageLimit * 100, "${Format.bytes(it)} / ${Format.bytes(storageLimit)}",
+                    shortDetail = "${Format.bytesShort(it)} / ${Format.bytesShort(storageLimit)}",
+                )
             }
             ProviderResult(id, name, items, if (items.isEmpty()) "查詢結果沒有大小欄位" else null, now)
         } catch (e: Http.HttpException) {

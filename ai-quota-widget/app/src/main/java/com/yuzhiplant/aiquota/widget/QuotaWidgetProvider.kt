@@ -12,6 +12,8 @@ import com.yuzhiplant.aiquota.R
 import com.yuzhiplant.aiquota.data.Format
 import com.yuzhiplant.aiquota.data.ResultCache
 import com.yuzhiplant.aiquota.data.usageLevel
+import com.yuzhiplant.aiquota.model.ProviderResult
+import com.yuzhiplant.aiquota.model.QuotaItem
 import com.yuzhiplant.aiquota.ui.MainActivity
 import com.yuzhiplant.aiquota.work.RefreshScheduler
 
@@ -63,21 +65,16 @@ class QuotaWidgetProvider : AppWidgetProvider() {
             } else {
                 root.setViewVisibility(R.id.widget_empty, View.GONE)
                 var rows = 0
-                for (r in results) {
+                for ((index, section) in widgetSections(results).withIndex()) {
                     if (rows >= MAX_ROWS) break
                     val header = RemoteViews(pkg, R.layout.widget_header_row)
-                    header.setTextViewText(R.id.header_text, r.name)
+                    header.setTextViewText(R.id.header_text, section.title)
+                    header.setViewVisibility(R.id.header_divider, if (index == 0) View.GONE else View.VISIBLE)
                     root.addView(R.id.widget_rows, header)
                     rows++
-
-                    if (r.error != null) {
-                        root.addView(R.id.widget_rows, row(pkg, "⚠ 讀取失敗", null, r.error))
-                        rows++
-                        continue
-                    }
-                    for (item in r.items.filter { it.showInWidget }) {
+                    for (row in section.rows) {
                         if (rows >= MAX_ROWS) break
-                        root.addView(R.id.widget_rows, row(pkg, item.label, item.percent, item.detail))
+                        root.addView(R.id.widget_rows, rowView(context, pkg, row))
                         rows++
                     }
                 }
@@ -99,26 +96,94 @@ class QuotaWidgetProvider : AppWidgetProvider() {
             return root
         }
 
-        private fun row(pkg: String, label: String, percent: Double?, detail: String): RemoteViews {
-            val v = RemoteViews(pkg, R.layout.widget_row)
-            v.setTextViewText(R.id.row_label, label)
-            val bars = intArrayOf(R.id.row_bar_ok, R.id.row_bar_warn, R.id.row_bar_bad)
-            if (percent != null) {
-                v.setTextViewText(R.id.row_value, Format.percent(percent))
-                val level = usageLevel(percent)
-                bars.forEachIndexed { i, id ->
-                    v.setViewVisibility(id, if (i == level) View.VISIBLE else View.GONE)
+        /** 小工具上的一列（已整理好要顯示的文字） */
+        private data class WidgetRow(val label: String, val percent: Double?, val value: String, val detail: String)
+
+        private data class Section(val title: String, val rows: List<WidgetRow>)
+
+        /**
+         * 把抓取結果整理成小工具的區塊：
+         * - 每個來源一個區塊，只放「上小工具」的項目
+         * - 讀取失敗只顯示一行「⚠ 讀取失敗・點開查看」，不塞長錯誤訊息
+         * - Supabase 多個專案合成一個區塊：用量 ≥ 50% 才列出，其餘收成一行摘要
+         */
+        private fun widgetSections(results: List<ProviderResult>): List<Section> {
+            val sections = mutableListOf<Section>()
+            val supabase = results.filter { it.id.startsWith("supabase") }
+            var supabaseAdded = false
+            for (r in results) {
+                if (r.id.startsWith("supabase")) {
+                    if (!supabaseAdded) {
+                        sections += supabaseSection(supabase)
+                        supabaseAdded = true
+                    }
+                    continue
                 }
-                v.setProgressBar(bars[level], 100, percent.coerceIn(0.0, 100.0).toInt(), false)
-                v.setViewVisibility(R.id.row_bar_frame, View.VISIBLE)
-                v.setTextViewText(R.id.row_detail, detail)
-                v.setViewVisibility(R.id.row_detail, if (detail.isEmpty()) View.GONE else View.VISIBLE)
-            } else {
-                // 沒有上限的項目：數值直接放右側
-                v.setTextViewText(R.id.row_value, detail)
-                v.setViewVisibility(R.id.row_bar_frame, View.GONE)
-                v.setViewVisibility(R.id.row_detail, View.GONE)
+                val rows = if (r.error != null) {
+                    listOf(WidgetRow("⚠ 讀取失敗", null, "點開查看", ""))
+                } else {
+                    r.items.filter { it.showInWidget }.map { toRow(it, it.label) }
+                }
+                if (rows.isNotEmpty()) sections += Section(r.name, rows)
             }
+            return sections
+        }
+
+        private fun supabaseSection(results: List<ProviderResult>): Section {
+            val rows = mutableListOf<WidgetRow>()
+            var ok = 0
+            var paused = 0
+            var failed = 0
+            for (r in results) {
+                val project = r.name.removePrefix("Supabase・")
+                when {
+                    r.error != null -> failed++
+                    r.items.any { it.label == "專案狀態" } -> paused++
+                    else -> if (!r.id.startsWith("supabase_org_")) ok++
+                }
+                // 只有用量偏高才值得佔一列
+                r.items.filter { (it.percent ?: 0.0) >= 50 }.forEach {
+                    rows += toRow(it, if (r.id.startsWith("supabase_org_")) it.label else "$project・${it.label}")
+                }
+            }
+            val summary = buildList {
+                if (ok > 0) add("$ok 個正常")
+                if (paused > 0) add("$paused 個已暫停")
+                if (failed > 0) add("$failed 個讀取失敗")
+            }.joinToString("・")
+            rows.add(0, WidgetRow("專案", null, summary.ifEmpty { "—" }, ""))
+            return Section("Supabase", rows)
+        }
+
+        private fun toRow(item: QuotaItem, label: String): WidgetRow {
+            val detail = listOf(item.shortDetail, Format.resetRelative(item.resetAt, short = true))
+                .filter { it.isNotEmpty() }
+                .joinToString("・")
+            return if (item.percent != null) {
+                WidgetRow(label, item.percent, Format.percent(item.percent), detail)
+            } else {
+                WidgetRow(label, null, item.shortDetail.ifEmpty { item.detail }, "")
+            }
+        }
+
+        private fun rowView(context: Context, pkg: String, row: WidgetRow): RemoteViews {
+            val v = RemoteViews(pkg, R.layout.widget_row)
+            v.setTextViewText(R.id.row_label, row.label)
+            v.setTextViewText(R.id.row_value, row.value)
+            val percent = row.percent
+            if (percent == null) {
+                v.setViewVisibility(R.id.row_bar_line, View.GONE)
+                return v
+            }
+            val level = usageLevel(percent)
+            val bars = intArrayOf(R.id.row_bar_ok, R.id.row_bar_warn, R.id.row_bar_bad)
+            bars.forEachIndexed { i, id -> v.setViewVisibility(id, if (i == level) View.VISIBLE else View.GONE) }
+            v.setProgressBar(bars[level], 100, percent.coerceIn(0.0, 100.0).toInt(), false)
+            // 偏高時數字直接變色，一眼看出要注意
+            if (level == 1) v.setTextColor(R.id.row_value, context.getColor(R.color.level_warn))
+            if (level == 2) v.setTextColor(R.id.row_value, context.getColor(R.color.level_bad))
+            v.setTextViewText(R.id.row_detail, row.detail)
+            v.setViewVisibility(R.id.row_detail, if (row.detail.isEmpty()) View.GONE else View.VISIBLE)
             return v
         }
     }
