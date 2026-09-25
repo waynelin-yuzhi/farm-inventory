@@ -14,7 +14,7 @@ class Settings(context: Context) {
 
     var claudeSessionKey: String
         get() = prefs.getString(KEY_SESSION, "") ?: ""
-        set(v) = prefs.edit().putString(KEY_SESSION, v.trim()).apply()
+        set(v) = prefs.edit().putString(KEY_SESSION, cleanSessionKey(v)).apply()
 
     /** 自動偵測後快取的 claude.ai 組織 ID；sessionKey 變更時清空。 */
     var claudeOrgId: String
@@ -78,6 +78,13 @@ class Settings(context: Context) {
         }
 
     companion object {
+        /** 貼上時常多帶「sessionKey=」、引號、分號或換行，一律清掉 */
+        fun cleanSessionKey(raw: String): String {
+            var v = raw.trim().trim('"', '\'', ';').trim()
+            if (v.startsWith("sessionKey=", ignoreCase = true)) v = v.substringAfter('=')
+            return v.filterNot { it.isWhitespace() }.trim('"', '\'', ';')
+        }
+
         private const val FILE = "secure_settings"
         private const val KEY_SESSION = "claude_session_key"
         private const val KEY_ORG = "claude_org_id"

@@ -1,12 +1,17 @@
 package com.yuzhiplant.aiquota.providers
 
+import android.content.Context
 import com.yuzhiplant.aiquota.data.Format
 import com.yuzhiplant.aiquota.data.Http
 import com.yuzhiplant.aiquota.data.Settings
+import com.yuzhiplant.aiquota.data.WebViewFetcher
 import com.yuzhiplant.aiquota.model.ProviderResult
 import com.yuzhiplant.aiquota.model.QuotaItem
 import org.json.JSONArray
 import org.json.JSONObject
+import org.json.JSONTokener
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Claude 訂閱方案（Pro / Max）用量：5 小時時段、本週各模型（含 Fable）使用百分比。
@@ -32,28 +37,24 @@ object ClaudeSubscriptionProvider {
     )
     private val order = listOf("five_hour", "seven_day")
 
-    fun fetch(settings: Settings): ProviderResult? {
+    /** claude.ai 回傳的錯誤（sessionKey 無效等），和連線層錯誤分開處理 */
+    private class AuthException(message: String) : Exception(message)
+
+    suspend fun fetch(context: Context, settings: Settings): ProviderResult? {
         val key = settings.claudeSessionKey
         if (key.isEmpty()) return null
         val now = System.currentTimeMillis()
-        val headers = mapOf(
-            "Cookie" to "sessionKey=$key",
-            "User-Agent" to UA,
-            "Accept" to "application/json",
-            "Referer" to "https://claude.ai/settings/usage",
-            "Origin" to "https://claude.ai",
-        )
         return try {
             var org = settings.claudeOrgId
             if (org.isEmpty()) {
-                org = pickOrg(JSONArray(Http.get("$BASE/organizations", headers)))
+                org = pickOrg(JSONArray(get(context, "$BASE/organizations", key)))
                 settings.claudeOrgId = org
             }
             val body = try {
-                Http.get("$BASE/organizations/$org/usage", headers)
-            } catch (e: Http.HttpException) {
+                get(context, "$BASE/organizations/$org/usage", key)
+            } catch (e: AuthException) {
                 // 組織可能變了，下次重新偵測
-                if (e.code == 403 || e.code == 404) settings.claudeOrgId = ""
+                settings.claudeOrgId = ""
                 throw e
             }
             val items = parseUsage(JSONObject(body))
@@ -62,16 +63,54 @@ object ClaudeSubscriptionProvider {
             } else {
                 ProviderResult(ID, NAME, items, null, now)
             }
+        } catch (e: AuthException) {
+            ProviderResult(ID, NAME, emptyList(), "sessionKey 無效或已過期，請重新取得後貼上（${e.message}）", now)
         } catch (e: Http.HttpException) {
-            val msg = when (e.code) {
-                401, 403 -> "sessionKey 失效或被擋下，請到設定重新貼上"
-                429 -> "查詢太頻繁，稍後再試"
-                else -> "連線錯誤（HTTP ${e.code}）"
-            }
+            val msg = if (e.code == 429) "查詢太頻繁，稍後再試" else "連線錯誤（HTTP ${e.code}）"
             ProviderResult(ID, NAME, emptyList(), msg, now)
         } catch (e: Exception) {
             ProviderResult(ID, NAME, emptyList(), "讀取失敗：${e.message ?: e.javaClass.simpleName}", now)
         }
+    }
+
+    /**
+     * 先用一般 HTTP 連線；被 Cloudflare 擋下（403 且回傳 HTML）時，改用隱藏 WebView 取得。
+     * 回傳內容若是 claude.ai 的錯誤 JSON，丟出 AuthException。
+     */
+    private suspend fun get(context: Context, url: String, key: String): String {
+        val headers = mapOf(
+            "Cookie" to "sessionKey=$key",
+            "User-Agent" to UA,
+            "Accept" to "application/json",
+            "Referer" to "https://claude.ai/settings/usage",
+            "Origin" to "https://claude.ai",
+        )
+        val body = try {
+            withContext(Dispatchers.IO) { Http.get(url, headers) }
+        } catch (e: Http.HttpException) {
+            val looksJson = e.body.trimStart().let { it.startsWith("{") || it.startsWith("[") }
+            when {
+                e.code == 429 -> throw e
+                looksJson -> throw AuthException(errorMessage(e.body) ?: "HTTP ${e.code}")
+                e.code == 401 || e.code == 403 || e.code == 503 ->
+                    WebViewFetcher.fetch(context, url, "https://claude.ai", "sessionKey=$key")
+                else -> throw e
+            }
+        }
+        errorMessage(body)?.let { throw AuthException(it) }
+        return body
+    }
+
+    /** claude.ai 錯誤格式：{"type":"error","error":{"type":"...","message":"..."}} */
+    private fun errorMessage(body: String): String? = try {
+        val o = JSONTokener(body).nextValue() as? JSONObject
+        if (o != null && o.optString("type") == "error") {
+            o.optJSONObject("error")?.optString("type")?.takeIf { it.isNotEmpty() } ?: "error"
+        } else {
+            null
+        }
+    } catch (e: Exception) {
+        null
     }
 
     /** 帳號可能同時屬於多個組織，優先挑有 Pro/Max 權限的那個。 */

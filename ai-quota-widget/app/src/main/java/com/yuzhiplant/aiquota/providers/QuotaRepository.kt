@@ -22,7 +22,7 @@ object QuotaRepository {
         val settings = Settings(context)
         val results = coroutineScope {
             val api = async { ClaudeApiProvider.fetch(settings) }
-            val subscription = async { ClaudeSubscriptionProvider.fetch(settings) }
+            val subscription = async { ClaudeSubscriptionProvider.fetch(context, settings) }
             val voyage = async { VoyageProvider.fetch(settings) }
             val supabase = async { SupabaseProvider.fetch(settings) }
             val custom = settings.customSources.map { src -> async { CustomJsonProvider.fetch(src) } }

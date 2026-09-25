@@ -86,7 +86,7 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun save() {
         val newSession = sessionKey.text?.toString()?.trim().orEmpty()
-        if (newSession != settings.claudeSessionKey) settings.claudeOrgId = ""
+        if (Settings.cleanSessionKey(newSession) != settings.claudeSessionKey) settings.claudeOrgId = ""
         settings.claudeSessionKey = newSession
         settings.anthropicAdminKey = adminKey.text?.toString().orEmpty()
         settings.apiMonthlyBudget = budget.text?.toString()?.toDoubleOrNull() ?: 0.0
