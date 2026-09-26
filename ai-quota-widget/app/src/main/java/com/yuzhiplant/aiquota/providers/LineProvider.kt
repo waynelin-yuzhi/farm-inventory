@@ -38,7 +38,7 @@ object LineProvider {
             ProviderResult(ID, NAME, listOf(item), null, now)
         } catch (e: Http.HttpException) {
             val msg = if (e.code == 401) "Channel access token 無效" else "連線錯誤（HTTP ${e.code}）"
-            ProviderResult(ID, NAME, emptyList(), msg, now)
+            ProviderResult(ID, NAME, emptyList(), msg, now, authError = e.code == 401)
         } catch (e: Exception) {
             ProviderResult(ID, NAME, emptyList(), "讀取失敗：${e.message ?: e.javaClass.simpleName}", now)
         }

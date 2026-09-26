@@ -64,7 +64,7 @@ object ClaudeSubscriptionProvider {
                 ProviderResult(ID, NAME, items, null, now)
             }
         } catch (e: AuthException) {
-            ProviderResult(ID, NAME, emptyList(), "sessionKey 無效或已過期，請重新取得後貼上（${e.message}）", now)
+            ProviderResult(ID, NAME, emptyList(), "sessionKey 無效或已過期，請重新取得後貼上（${e.message}）", now, authError = true)
         } catch (e: Http.HttpException) {
             val msg = if (e.code == 429) "查詢太頻繁，稍後再試" else "連線錯誤（HTTP ${e.code}）"
             ProviderResult(ID, NAME, emptyList(), msg, now)

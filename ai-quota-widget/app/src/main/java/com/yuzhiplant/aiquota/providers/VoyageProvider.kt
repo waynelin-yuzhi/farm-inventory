@@ -45,7 +45,7 @@ object VoyageProvider {
                 404 -> "找不到這個 Atlas 組織 ID"
                 else -> "連線錯誤（HTTP ${e.code}）"
             }
-            ProviderResult(ID, NAME, emptyList(), msg, now)
+            ProviderResult(ID, NAME, emptyList(), msg, now, authError = e.code in listOf(400, 401, 403))
         } catch (e: Exception) {
             ProviderResult(ID, NAME, emptyList(), "讀取失敗：${e.message ?: e.javaClass.simpleName}", now)
         }

@@ -41,7 +41,8 @@ object CustomJsonProvider {
             }
             ProviderResult(id, src.name, listOf(item), null, now)
         } catch (e: Http.HttpException) {
-            ProviderResult(id, src.name, emptyList(), "連線錯誤（HTTP ${e.code}）", now)
+            val auth = e.code == 401 || e.code == 403
+            ProviderResult(id, src.name, emptyList(), if (auth) "金鑰無效或沒有權限（HTTP ${e.code}）" else "連線錯誤（HTTP ${e.code}）", now, authError = auth)
         } catch (e: Exception) {
             ProviderResult(id, src.name, emptyList(), e.message ?: e.javaClass.simpleName, now)
         }

@@ -2,6 +2,7 @@ package com.yuzhiplant.aiquota.providers
 
 import android.content.Context
 import com.yuzhiplant.aiquota.data.BudgetAlerts
+import com.yuzhiplant.aiquota.data.CredentialAlerts
 import com.yuzhiplant.aiquota.data.ResultCache
 import com.yuzhiplant.aiquota.data.SectionOrder
 import com.yuzhiplant.aiquota.data.Settings
@@ -35,6 +36,7 @@ object QuotaRepository {
         ResultCache.save(context, results)
         val ordered = SectionOrder.apply(context, results)
         BudgetAlerts.check(context, results)
+        CredentialAlerts.check(context, results)
         QuotaWidgetProvider.updateAll(context)
         ordered
     }

@@ -31,7 +31,7 @@ object DriveProvider {
         return try {
             val body = Http.get(url, mapOf("Accept" to "application/json"))
             if (!body.trimStart().startsWith("{")) {
-                return ProviderResult(ID, NAME, emptyList(), "網址回傳的不是資料，請確認部署時「存取權」選「所有人」", now)
+                return ProviderResult(ID, NAME, emptyList(), "網址回傳的不是資料，請確認部署時「存取權」選「所有人」", now, authError = true)
             }
             val json = JSONObject(body)
             val used = json.optDouble("used", Double.NaN)
@@ -49,7 +49,7 @@ object DriveProvider {
             }
             ProviderResult(ID, NAME, listOf(item), null, now)
         } catch (e: Http.HttpException) {
-            ProviderResult(ID, NAME, emptyList(), "連線錯誤（HTTP ${e.code}），請確認網址是否正確", now)
+            ProviderResult(ID, NAME, emptyList(), "連線錯誤（HTTP ${e.code}），請確認網址是否正確", now, authError = e.code in listOf(401, 403, 404))
         } catch (e: Exception) {
             ProviderResult(ID, NAME, emptyList(), "讀取失敗：${e.message ?: e.javaClass.simpleName}", now)
         }

@@ -43,7 +43,7 @@ object SupabaseProvider {
             JSONArray(Http.get("$BASE/v1/projects", headers))
         } catch (e: Http.HttpException) {
             val msg = if (e.code == 401) "Access token 無效" else "連線錯誤（HTTP ${e.code}）"
-            return listOf(ProviderResult("supabase", "Supabase", emptyList(), msg, now))
+            return listOf(ProviderResult("supabase", "Supabase", emptyList(), msg, now, authError = e.code == 401 || e.code == 403))
         } catch (e: Exception) {
             return listOf(ProviderResult("supabase", "Supabase", emptyList(), "讀取失敗：${e.message}", now))
         }
@@ -116,7 +116,7 @@ object SupabaseProvider {
             ProviderResult(id, name, items, if (items.isEmpty()) "查詢結果沒有大小欄位" else null, now)
         } catch (e: Http.HttpException) {
             val msg = if (e.code == 403) "Token 沒有讀取資料庫的權限" else "查詢失敗（HTTP ${e.code}）"
-            ProviderResult(id, name, emptyList(), msg, now)
+            ProviderResult(id, name, emptyList(), msg, now, authError = e.code == 401 || e.code == 403)
         } catch (e: Exception) {
             ProviderResult(id, name, emptyList(), "查詢失敗：${e.message}", now)
         }

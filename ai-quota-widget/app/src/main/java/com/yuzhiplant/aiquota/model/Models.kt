@@ -46,6 +46,8 @@ data class ProviderResult(
     val items: List<QuotaItem>,
     val error: String?,
     val updatedAt: Long,
+    /** true：錯誤原因是金鑰／憑證失效或權限不足（會推播提醒），不是網路問題 */
+    val authError: Boolean = false,
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("id", id)
@@ -53,6 +55,7 @@ data class ProviderResult(
         .put("items", JSONArray().apply { items.forEach { put(it.toJson()) } })
         .put("error", error ?: JSONObject.NULL)
         .put("updatedAt", updatedAt)
+        .put("authError", authError)
 
     companion object {
         fun fromJson(o: JSONObject): ProviderResult {
@@ -63,6 +66,7 @@ data class ProviderResult(
                 items = (0 until arr.length()).map { QuotaItem.fromJson(arr.getJSONObject(it)) },
                 error = if (o.isNull("error")) null else o.optString("error"),
                 updatedAt = o.optLong("updatedAt"),
+                authError = o.optBoolean("authError"),
             )
         }
     }
