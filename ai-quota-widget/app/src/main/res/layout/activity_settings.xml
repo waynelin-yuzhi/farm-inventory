@@ -56,6 +56,13 @@
                         android:layout_height="wrap_content"
                         android:inputType="textPassword" />
                 </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_copy_claude_raw"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="複製用量原始資料（除錯用）" />
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

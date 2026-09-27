@@ -18,6 +18,7 @@ import com.yuzhiplant.aiquota.R
 import com.yuzhiplant.aiquota.data.Settings
 import com.yuzhiplant.aiquota.data.UpdateChecker
 import com.yuzhiplant.aiquota.model.CustomSource
+import com.yuzhiplant.aiquota.providers.ClaudeSubscriptionProvider
 import com.yuzhiplant.aiquota.providers.DriveProvider
 import com.yuzhiplant.aiquota.providers.SupabaseProvider
 import com.yuzhiplant.aiquota.data.Http
@@ -101,6 +102,16 @@ class SettingsActivity : AppCompatActivity() {
             )
         }
         findViewById<MaterialButton>(R.id.btn_save).setOnClickListener { save() }
+        findViewById<MaterialButton>(R.id.btn_copy_claude_raw).setOnClickListener {
+            val raw = ClaudeSubscriptionProvider.lastRaw(this)
+            if (raw.isEmpty()) {
+                Toast.makeText(this, "還沒有資料，請先回首頁下拉更新一次", Toast.LENGTH_LONG).show()
+            } else {
+                getSystemService(ClipboardManager::class.java)
+                    .setPrimaryClip(ClipData.newPlainText("Claude 用量原始資料", raw))
+                Toast.makeText(this, "已複製，直接貼給 Claude 就好（只有用量數字，不含金鑰）", Toast.LENGTH_LONG).show()
+            }
+        }
         // 小工具樣式：選了就立即套用，不用按儲存
         val styleGroup = findViewById<RadioGroup>(R.id.widget_style_group)
         styleGroup.check(if (settings.widgetStyle == "A") R.id.widget_style_a else R.id.widget_style_b)

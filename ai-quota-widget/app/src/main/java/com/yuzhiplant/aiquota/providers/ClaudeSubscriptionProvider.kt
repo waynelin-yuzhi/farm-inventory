@@ -35,7 +35,13 @@ object ClaudeSubscriptionProvider {
         "seven_day_oauth_apps" to "本週・外部應用",
         "extra_usage" to "額外用量（本月）",
     )
-    private val order = listOf("five_hour", "seven_day")
+
+    private const val DEBUG_PREFS = "debug"
+    private const val KEY_RAW = "claude_usage_raw"
+
+    /** 最近一次的原始回應（只有用量數字與重置時間，不含金鑰），設定頁可複製給開發者除錯 */
+    fun lastRaw(context: Context): String =
+        context.getSharedPreferences(DEBUG_PREFS, Context.MODE_PRIVATE).getString(KEY_RAW, "") ?: ""
 
     /** claude.ai 回傳的錯誤（sessionKey 無效等），和連線層錯誤分開處理 */
     private class AuthException(message: String) : Exception(message)
@@ -57,6 +63,7 @@ object ClaudeSubscriptionProvider {
                 settings.claudeOrgId = ""
                 throw e
             }
+            context.getSharedPreferences(DEBUG_PREFS, Context.MODE_PRIVATE).edit().putString(KEY_RAW, body).apply()
             val items = parseUsage(JSONObject(body))
             if (items.isEmpty()) {
                 ProviderResult(ID, NAME, emptyList(), "回傳內容沒有用量欄位，可能是免費帳號或格式已變更", now)
@@ -124,31 +131,73 @@ object ClaudeSubscriptionProvider {
         return arr.getJSONObject(0).getString("uuid")
     }
 
+    /** 顯示順序：5 小時 → 本週全部 → Fable → 其他本週 → 其他 */
+    private fun rank(key: String, label: String): Int = when {
+        key == "five_hour" -> 0
+        key == "seven_day" -> 1
+        label.contains("Fable") -> 2
+        label.startsWith("本週") -> 3
+        else -> 4
+    }
+
+    /**
+     * 往下每一層都找「帶 utilization 的物件」，不只第一層：
+     * 各模型的額度可能包在陣列或子物件裡，名稱也可能是內部代號。
+     */
     private fun parseUsage(json: JSONObject): List<QuotaItem> {
-        val keys = json.keys().asSequence().toList()
-            .sortedWith(compareBy<String>({ order.indexOf(it).let { i -> if (i < 0) Int.MAX_VALUE else i } }, { it }))
-        val items = mutableListOf<QuotaItem>()
-        for (key in keys) {
-            val o = json.optJSONObject(key) ?: continue
-            if (o.isNull("utilization")) continue
-            val util = o.optDouble("utilization", Double.NaN)
-            if (util.isNaN()) continue
-            var money = ""
-            if (o.has("used_credits") && o.has("monthly_limit") && !o.isNull("monthly_limit")) {
-                money = "${Format.usdShort(o.optDouble("used_credits") / 100)} / ${Format.usdShort(o.optDouble("monthly_limit") / 100)}"
+        val found = mutableListOf<Triple<Int, String, QuotaItem>>()
+        walk(json, emptyList(), found)
+        return found
+            .distinctBy { it.second }
+            .sortedWith(compareBy<Triple<Int, String, QuotaItem>>({ it.first }, { it.second }))
+            .map { it.third }
+    }
+
+    private fun walk(v: Any?, path: List<String>, out: MutableList<Triple<Int, String, QuotaItem>>) {
+        when (v) {
+            is JSONObject -> {
+                if (path.isNotEmpty() && !v.isNull("utilization") && !v.optDouble("utilization", Double.NaN).isNaN()) {
+                    out += toItem(v, path)
+                }
+                for (k in v.keys()) {
+                    if (k == "utilization") continue
+                    walk(v.opt(k), path + k, out)
+                }
             }
-            // 認得的額度才上小工具；內部代號（例如 iguana_necktie）只在 App 內列出
-            val known = key in labels || key.startsWith("seven_day_")
-            items += QuotaItem(
-                label = labelFor(key),
-                percent = util,
-                detail = money,
-                showInWidget = known,
-                shortDetail = money,
-                resetAt = Format.parseIso(o.optString("resets_at")),
-            )
+            is JSONArray -> for (i in 0 until v.length()) walk(v.opt(i), path + i.toString(), out)
         }
-        return items
+    }
+
+    private fun toItem(o: JSONObject, path: List<String>): Triple<Int, String, QuotaItem> {
+        val key = path.last()
+        val nameHint = listOf("display_name", "name", "model_name", "model", "label", "title")
+            .map { o.optString(it) }
+            .firstOrNull { it.isNotBlank() && it != "null" }
+            .orEmpty()
+        val haystack = (path + nameHint).joinToString(" ").lowercase()
+        val weekly = haystack.contains("seven_day") || haystack.contains("week")
+        val isFable = haystack.contains("fable")
+        val label = when {
+            isFable -> "本週・Fable"
+            key in labels -> labels.getValue(key)
+            nameHint.isNotEmpty() -> (if (weekly) "本週・" else "") + nameHint
+            else -> labelFor(key)
+        }
+        var money = ""
+        if (o.has("used_credits") && o.has("monthly_limit") && !o.isNull("monthly_limit")) {
+            money = "${Format.usdShort(o.optDouble("used_credits") / 100)} / ${Format.usdShort(o.optDouble("monthly_limit") / 100)}"
+        }
+        // 認得的額度才上小工具；看不懂的內部代號只在 App 內列出
+        val known = isFable || key in labels || key.startsWith("seven_day_") || nameHint.isNotEmpty()
+        val item = QuotaItem(
+            label = label,
+            percent = o.optDouble("utilization"),
+            detail = money,
+            showInWidget = known,
+            shortDetail = money,
+            resetAt = Format.parseIso(o.optString("resets_at")),
+        )
+        return Triple(rank(key, label), label, item)
     }
 
     private fun labelFor(key: String): String = labels[key]
