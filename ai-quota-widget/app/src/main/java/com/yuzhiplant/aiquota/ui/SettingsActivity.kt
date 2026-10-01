@@ -36,6 +36,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var sessionKey: TextInputEditText
     private lateinit var adminKey: TextInputEditText
     private lateinit var budget: TextInputEditText
+    private lateinit var balance: TextInputEditText
     private lateinit var interval: TextInputEditText
     private lateinit var voyageId: TextInputEditText
     private lateinit var voyageSecret: TextInputEditText
@@ -58,6 +59,7 @@ class SettingsActivity : AppCompatActivity() {
         sessionKey = findViewById(R.id.input_session_key)
         adminKey = findViewById(R.id.input_admin_key)
         budget = findViewById(R.id.input_budget)
+        balance = findViewById(R.id.input_balance)
         interval = findViewById(R.id.input_interval)
         customList = findViewById(R.id.custom_list)
         voyageId = findViewById(R.id.input_voyage_id)
@@ -72,6 +74,7 @@ class SettingsActivity : AppCompatActivity() {
         sessionKey.setText(settings.claudeSessionKey)
         adminKey.setText(settings.anthropicAdminKey)
         settings.apiMonthlyBudget.takeIf { it > 0 }?.let { budget.setText(trimNumber(it)) }
+        settings.apiBalance.takeIf { it > 0 }?.let { balance.setText(trimNumber(it)) }
         interval.setText(settings.refreshMinutes.toString())
         voyageId.setText(settings.voyageClientId)
         voyageSecret.setText(settings.voyageClientSecret)
@@ -134,6 +137,14 @@ class SettingsActivity : AppCompatActivity() {
         settings.claudeSessionKey = newSession
         settings.anthropicAdminKey = adminKey.text?.toString().orEmpty()
         settings.apiMonthlyBudget = budget.text?.toString()?.toDoubleOrNull() ?: 0.0
+        // 餘額有變才重新起算（填入當天為起點，下一次更新時記下當天已花的金額當基準）
+        val newBalance = balance.text?.toString()?.toDoubleOrNull() ?: 0.0
+        if (newBalance != settings.apiBalance) {
+            settings.apiBalance = newBalance
+            settings.apiBalanceDate = java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString()
+            settings.apiBalanceBaselineCents = 0.0
+            settings.apiBalancePending = newBalance > 0
+        }
         settings.voyageClientId = voyageId.text?.toString().orEmpty()
         settings.voyageClientSecret = voyageSecret.text?.toString().orEmpty()
         settings.voyageOrgId = voyageOrg.text?.toString().orEmpty()

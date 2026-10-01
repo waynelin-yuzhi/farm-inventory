@@ -28,6 +28,12 @@ object ClaudeApiProvider {
         return try {
             val todayUtc = ZonedDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS)
             val monthStart = todayUtc.withDayOfMonth(1)
+            val monthStr = monthStart.toLocalDate().toString()
+            // 有填儲值餘額時，也要從填入那天開始加總
+            val balance = settings.apiBalance
+            val anchorStr = settings.apiBalanceDate.takeIf { balance > 0 && it.length == 10 }
+            val queryStart = listOfNotNull(monthStr, anchorStr).minOrNull()!!
+                .let { java.time.LocalDate.parse(it).atStartOfDay(ZoneOffset.UTC) }
             val headers = mapOf(
                 "x-api-key" to key,
                 "anthropic-version" to "2023-06-01",
@@ -36,6 +42,8 @@ object ClaudeApiProvider {
 
             var monthCents = 0.0
             var todayCents = 0.0
+            var sinceAnchorCents = 0.0
+            var anchorDayCents = 0.0
             val byModel = mutableMapOf<String, Double>()
             var page: String? = null
             var guard = 0
@@ -45,7 +53,7 @@ object ClaudeApiProvider {
                     // 從「月初前一天」開始查：每月 1 號時，API 會把結束時間算成今天 0 點，
                     // 若開始也是今天 0 點就會回 400（ending date must be after starting date）。
                     // 前一天的花費在下面加總時會排除，結果仍是「本月已花費」。
-                    append("?starting_at=").append(enc(DateTimeFormatter.ISO_INSTANT.format(monthStart.minusDays(1))))
+                    append("?starting_at=").append(enc(DateTimeFormatter.ISO_INSTANT.format(queryStart.minusDays(1))))
                     append("&bucket_width=1d&limit=31&group_by%5B%5D=description")
                     if (page != null) append("&page=").append(enc(page!!))
                 }
@@ -54,14 +62,19 @@ object ClaudeApiProvider {
                 if (data != null) {
                     for (i in 0 until data.length()) {
                         val bucket = data.getJSONObject(i)
-                        // 只算本月（ISO 日期字串可直接比大小）
-                        if (bucket.optString("starting_at").take(10) < monthStart.toLocalDate().toString()) continue
+                        // ISO 日期字串可直接比大小
+                        val day = bucket.optString("starting_at").take(10)
+                        val inMonth = day >= monthStr
+                        val sinceAnchor = anchorStr != null && day >= anchorStr
                         val isToday = bucket.optString("starting_at").startsWith(todayUtc.toLocalDate().toString())
                         val results = bucket.optJSONArray("results") ?: continue
                         for (j in 0 until results.length()) {
                             // amount 是以「美分」為單位的十進位字串
                             val r = results.getJSONObject(j)
                             val cents = r.optString("amount").toDoubleOrNull() ?: 0.0
+                            if (sinceAnchor) sinceAnchorCents += cents
+                            if (sinceAnchor && day == anchorStr) anchorDayCents += cents
+                            if (!inMonth) continue
                             monthCents += cents
                             val model = r.optString("model").takeIf { it.isNotEmpty() && it != "null" } ?: "其他（工具、網搜等）"
                             byModel[model] = (byModel[model] ?: 0.0) + cents
@@ -77,8 +90,17 @@ object ClaudeApiProvider {
                 guard++
             } while (page != null && guard < 10)
 
+            val items = mutableListOf<QuotaItem>()
+            if (anchorStr != null) {
+                // 剛填入餘額：把填入當天已花的金額記成基準，之後只扣新增的
+                if (settings.apiBalancePending) {
+                    settings.apiBalanceBaselineCents = anchorDayCents
+                    settings.apiBalancePending = false
+                }
+                items += balanceItem(balance, anchorStr, (sinceAnchorCents - settings.apiBalanceBaselineCents) / 100)
+            }
             val spent = monthCents / 100
-            val items = MonthlyCost.items(spent, settings.apiMonthlyBudget).toMutableList()
+            items += MonthlyCost.items(spent, settings.apiMonthlyBudget)
             items += QuotaItem("今日花費（UTC）", null, Format.usd(todayCents / 100), showInWidget = false)
             // 各模型本月花費（前 4 名），只在 App 內顯示
             byModel.entries.sortedByDescending { it.value }.take(4).filter { it.value > 0 }.forEach { (model, cents) ->
@@ -96,6 +118,30 @@ object ClaudeApiProvider {
         } catch (e: Exception) {
             ProviderResult(ID, NAME, emptyList(), "讀取失敗：${e.message ?: e.javaClass.simpleName}", now)
         }
+    }
+
+    /** 估計剩餘儲值：填入的餘額 − 之後的花費，並依平均每日花費推估還能用幾天 */
+    private fun balanceItem(balance: Double, anchorStr: String, spentSince: Double): QuotaItem {
+        val spent = spentSince.coerceAtLeast(0.0)
+        val remaining = balance - spent
+        val anchor = java.time.LocalDate.parse(anchorStr)
+        val days = ChronoUnit.HOURS.between(anchor.atStartOfDay(ZoneOffset.UTC), ZonedDateTime.now(ZoneOffset.UTC)) / 24.0
+        val perDay = if (days >= 1) spent / days else 0.0
+        val daysLeft = if (perDay > 0 && remaining > 0) (remaining / perDay).toInt() else -1
+        val hint = when {
+            remaining <= 0 -> "可能已用完，請到 Console 確認"
+            daysLeft >= 0 -> "照目前速度約可再用 $daysLeft 天"
+            else -> ""
+        }
+        val since = "${anchor.monthValue}/${anchor.dayOfMonth} 起"
+        return QuotaItem(
+            label = "估計剩餘儲值",
+            percent = (spent / balance * 100).coerceAtMost(100.0),
+            detail = listOf("剩 ${Format.usd(remaining.coerceAtLeast(0.0))} / ${Format.usdShort(balance)}", "$since 已用 ${Format.usd(spent)}", hint)
+                .filter { it.isNotEmpty() }.joinToString("・"),
+            shortDetail = "剩 ${Format.usd(remaining.coerceAtLeast(0.0))} / ${Format.usdShort(balance)}",
+            hint = hint,
+        )
     }
 
     /** Anthropic 錯誤格式：{"type":"error","error":{"message":"…"}} */

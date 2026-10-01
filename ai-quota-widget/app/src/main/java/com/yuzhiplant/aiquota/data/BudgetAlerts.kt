@@ -30,10 +30,10 @@ object BudgetAlerts {
     private const val PREFS = "budget_alerts"
     /** 來源 ID → 要監看的項目名稱開頭 */
     private val WATCHED = mapOf(
-        ClaudeApiProvider.ID to "本月花費",
-        VoyageProvider.ID to "本月花費",
-        LineProvider.ID to "本月訊息",
-        DriveProvider.ID to "儲存空間",
+        ClaudeApiProvider.ID to listOf("估計剩餘儲值", "本月花費"),
+        VoyageProvider.ID to listOf("本月花費"),
+        LineProvider.ID to listOf("本月訊息"),
+        DriveProvider.ID to listOf("儲存空間"),
     )
     private val THRESHOLDS = listOf(100, 80)
 
@@ -49,22 +49,26 @@ object BudgetAlerts {
         val month = LocalDate.now(ZoneOffset.UTC).toString().take(7)
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         for (r in results) {
-            val prefix = WATCHED[r.id] ?: continue
+            val prefixes = WATCHED[r.id] ?: continue
             if (r.error != null) continue
-            val item = r.items.firstOrNull { it.label.startsWith(prefix) } ?: continue
-            val pct = item.percent ?: continue
-            val key = "${r.id}_$month"
-            val notified = prefs.getInt(key, 0)
-            val hit = THRESHOLDS.firstOrNull { pct >= it } ?: continue
-            if (hit <= notified) continue
-            prefs.edit().putInt(key, hit).apply()
-            val title = when {
-                prefix == "本月花費" && hit >= 100 -> "${r.name} 本月已超過預算"
-                prefix == "本月花費" -> "${r.name} 本月已用 ${Format.percent(pct)} 預算"
-                hit >= 100 -> "${r.name} ${prefix}已用完"
-                else -> "${r.name} ${prefix}已用 ${Format.percent(pct)}"
+            for (prefix in prefixes) {
+                val item = r.items.firstOrNull { it.label.startsWith(prefix) } ?: continue
+                val pct = item.percent ?: continue
+                val key = "${r.id}_${prefix}_$month"
+                val notified = prefs.getInt(key, 0)
+                val hit = THRESHOLDS.firstOrNull { pct >= it } ?: continue
+                if (hit <= notified) continue
+                prefs.edit().putInt(key, hit).apply()
+                val title = when {
+                    prefix == "估計剩餘儲值" && hit >= 100 -> "Claude API 儲值可能已用完"
+                    prefix == "估計剩餘儲值" -> "Claude API 儲值已用 ${Format.percent(pct)}"
+                    prefix == "本月花費" && hit >= 100 -> "${r.name} 本月已超過預算"
+                    prefix == "本月花費" -> "${r.name} 本月已用 ${Format.percent(pct)} 預算"
+                    hit >= 100 -> "${r.name} ${prefix}已用完"
+                    else -> "${r.name} ${prefix}已用 ${Format.percent(pct)}"
+                }
+                notify(context, (r.id + prefix).hashCode(), title, item.detail)
             }
-            notify(context, r.id.hashCode(), title, item.detail)
         }
     }
 

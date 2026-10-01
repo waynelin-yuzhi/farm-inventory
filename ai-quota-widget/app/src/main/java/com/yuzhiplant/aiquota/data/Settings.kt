@@ -73,6 +73,27 @@ class Settings(context: Context) {
         get() = prefs.getString(KEY_WIDGET_STYLE, "B") ?: "B"
         set(v) = prefs.edit().putString(KEY_WIDGET_STYLE, v).apply()
 
+    /**
+     * Claude API 儲值餘額推算：使用者填入 Console 上看到的餘額（美元）與填入當天（UTC 日期），
+     * App 之後把每天花費扣掉。baselineCents = 填入當天「填之前」已花的部分（避免重複扣）。
+     */
+    var apiBalance: Double
+        get() = prefs.getString(KEY_API_BALANCE, "0")?.toDoubleOrNull() ?: 0.0
+        set(v) = prefs.edit().putString(KEY_API_BALANCE, v.toString()).apply()
+
+    var apiBalanceDate: String
+        get() = prefs.getString(KEY_API_BALANCE_DATE, "") ?: ""
+        set(v) = prefs.edit().putString(KEY_API_BALANCE_DATE, v).apply()
+
+    var apiBalanceBaselineCents: Double
+        get() = prefs.getString(KEY_API_BALANCE_BASE, "0")?.toDoubleOrNull() ?: 0.0
+        set(v) = prefs.edit().putString(KEY_API_BALANCE_BASE, v.toString()).apply()
+
+    /** true：剛填入新餘額，下一次抓取時記下填入當天已花的金額當基準 */
+    var apiBalancePending: Boolean
+        get() = prefs.getBoolean(KEY_API_BALANCE_PENDING, false)
+        set(v) = prefs.edit().putBoolean(KEY_API_BALANCE_PENDING, v).apply()
+
     var refreshMinutes: Int
         get() = prefs.getInt(KEY_INTERVAL, 30)
         set(v) = prefs.edit().putInt(KEY_INTERVAL, v.coerceAtLeast(15)).apply()
@@ -114,6 +135,10 @@ class Settings(context: Context) {
         private const val KEY_SUPABASE_TOKEN = "supabase_token"
         private const val KEY_SUPABASE_REFS = "supabase_refs"
         private const val KEY_WIDGET_STYLE = "widget_style"
+        private const val KEY_API_BALANCE = "api_balance"
+        private const val KEY_API_BALANCE_DATE = "api_balance_date"
+        private const val KEY_API_BALANCE_BASE = "api_balance_baseline_cents"
+        private const val KEY_API_BALANCE_PENDING = "api_balance_pending"
         private const val KEY_INTERVAL = "refresh_minutes"
         private const val KEY_CUSTOM = "custom_sources"
 

@@ -99,6 +99,21 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
+                    android:hint="目前儲值餘額（美元）"
+                    app:helperText="到 console.anthropic.com → Settings → Billing 看「Credit balance」填入；App 會自動扣掉之後的花費。儲值後再更新一次">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/input_balance"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="numberDecimal" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
                     android:hint="每月預算（美元）"
                     app:helperText="達 80％、100％ 會推播提醒；留空則只顯示金額">
 

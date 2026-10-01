@@ -272,7 +272,7 @@ class QuotaWidgetProvider : AppWidgetProvider() {
                 v.setTextViewText(ids[1], row.value)
                 tintValue(context, v, ids[1], percent)
                 v.setTextViewText(ids[2], row.label)
-                val detail = row.hint.ifEmpty { row.amount }
+                val detail = row.amount.ifEmpty { row.hint }
                 v.setTextViewText(ids[3], detail)
                 v.setViewVisibility(ids[3], if (detail.isEmpty()) View.GONE else View.VISIBLE)
                 setBar(v, intArrayOf(ids[4], ids[5], ids[6]), percent)
