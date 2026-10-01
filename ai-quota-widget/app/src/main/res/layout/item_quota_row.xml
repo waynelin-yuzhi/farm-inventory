@@ -11,19 +11,22 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal">
 
+        <!-- 名稱先取自己需要的寬度，數值用剩下的空間（太長就換行、靠右），避免名稱被擠成直排 -->
         <TextView
             android:id="@+id/quota_label"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:maxLines="1"
             android:textColor="@color/text_primary"
             android:textSize="14sp" />
 
         <TextView
             android:id="@+id/quota_value"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:gravity="end"
+            android:layout_marginStart="12dp"
             android:textColor="@color/text_primary"
             android:textSize="14sp"
             android:textStyle="bold" />

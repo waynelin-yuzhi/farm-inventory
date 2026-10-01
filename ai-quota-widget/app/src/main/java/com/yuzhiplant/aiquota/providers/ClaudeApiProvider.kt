@@ -42,9 +42,10 @@ object ClaudeApiProvider {
             do {
                 val url = buildString {
                     append("https://api.anthropic.com/v1/organizations/cost_report")
-                    append("?starting_at=").append(enc(DateTimeFormatter.ISO_INSTANT.format(monthStart)))
-                    // 明確給結束時間（明天 0 點 UTC）：每月 1 號範圍太短時，API 不會再回 400
-                    append("&ending_at=").append(enc(DateTimeFormatter.ISO_INSTANT.format(todayUtc.plusDays(1))))
+                    // 從「月初前一天」開始查：每月 1 號時，API 會把結束時間算成今天 0 點，
+                    // 若開始也是今天 0 點就會回 400（ending date must be after starting date）。
+                    // 前一天的花費在下面加總時會排除，結果仍是「本月已花費」。
+                    append("?starting_at=").append(enc(DateTimeFormatter.ISO_INSTANT.format(monthStart.minusDays(1))))
                     append("&bucket_width=1d&limit=31&group_by%5B%5D=description")
                     if (page != null) append("&page=").append(enc(page!!))
                 }
@@ -53,6 +54,8 @@ object ClaudeApiProvider {
                 if (data != null) {
                     for (i in 0 until data.length()) {
                         val bucket = data.getJSONObject(i)
+                        // 只算本月（ISO 日期字串可直接比大小）
+                        if (bucket.optString("starting_at").take(10) < monthStart.toLocalDate().toString()) continue
                         val isToday = bucket.optString("starting_at").startsWith(todayUtc.toLocalDate().toString())
                         val results = bucket.optJSONArray("results") ?: continue
                         for (j in 0 until results.length()) {
