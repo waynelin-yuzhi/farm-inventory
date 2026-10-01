@@ -43,6 +43,8 @@ object ClaudeApiProvider {
                 val url = buildString {
                     append("https://api.anthropic.com/v1/organizations/cost_report")
                     append("?starting_at=").append(enc(DateTimeFormatter.ISO_INSTANT.format(monthStart)))
+                    // 明確給結束時間（明天 0 點 UTC）：每月 1 號範圍太短時，API 不會再回 400
+                    append("&ending_at=").append(enc(DateTimeFormatter.ISO_INSTANT.format(todayUtc.plusDays(1))))
                     append("&bucket_width=1d&limit=31&group_by%5B%5D=description")
                     if (page != null) append("&page=").append(enc(page!!))
                 }
@@ -85,12 +87,19 @@ object ClaudeApiProvider {
             val msg = when (e.code) {
                 401 -> "Admin key 無效"
                 403 -> "此 key 沒有權限，需使用 Admin API key"
-                else -> "連線錯誤（HTTP ${e.code}）"
+                else -> "連線錯誤（HTTP ${e.code}）" + (apiMessage(e.body)?.let { "：$it" } ?: "")
             }
             ProviderResult(ID, NAME, emptyList(), msg, now, authError = e.code == 401 || e.code == 403)
         } catch (e: Exception) {
             ProviderResult(ID, NAME, emptyList(), "讀取失敗：${e.message ?: e.javaClass.simpleName}", now)
         }
+    }
+
+    /** Anthropic 錯誤格式：{"type":"error","error":{"message":"…"}} */
+    private fun apiMessage(body: String): String? = try {
+        JSONObject(body).optJSONObject("error")?.optString("message")?.takeIf { it.isNotBlank() }?.take(120)
+    } catch (e: Exception) {
+        null
     }
 
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
