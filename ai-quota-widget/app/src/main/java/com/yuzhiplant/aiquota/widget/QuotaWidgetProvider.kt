@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.view.View
 import android.widget.RemoteViews
 import com.yuzhiplant.aiquota.R
@@ -41,8 +42,6 @@ class QuotaWidgetProvider : AppWidgetProvider() {
 
     companion object {
         const val ACTION_REFRESH = "com.yuzhiplant.aiquota.action.REFRESH"
-        private const val MAX_ROWS = 14
-        private const val MAX_CARDS = 7
 
         fun updateAll(context: Context, refreshing: Boolean = false) {
             val manager = AppWidgetManager.getInstance(context)
@@ -50,6 +49,8 @@ class QuotaWidgetProvider : AppWidgetProvider() {
             if (ids.isEmpty()) return
             val views = buildViews(context, refreshing)
             ids.forEach { manager.updateAppWidget(it, views) }
+            @Suppress("DEPRECATION")
+            manager.notifyAppWidgetViewDataChanged(ids, R.id.widget_list)
         }
 
         private fun buildViews(context: Context, refreshing: Boolean): RemoteViews {
@@ -63,31 +64,13 @@ class QuotaWidgetProvider : AppWidgetProvider() {
                 if (refreshing) "更新中…" else Format.updatedAt(updated),
             )
 
-            root.removeAllViews(R.id.widget_rows)
-            if (results.isEmpty()) {
-                root.setViewVisibility(R.id.widget_empty, View.VISIBLE)
-            } else {
-                root.setViewVisibility(R.id.widget_empty, View.GONE)
-                val sections = widgetSections(results, WidgetVisibility.load(context))
-                if (Settings(context).widgetStyle == "A") {
-                    var rows = 0
-                    for ((index, section) in sections.withIndex()) {
-                        if (rows >= MAX_ROWS) break
-                        val header = RemoteViews(pkg, R.layout.widget_header_row)
-                        header.setTextViewText(R.id.header_text, section.title)
-                        header.setViewVisibility(R.id.header_divider, if (index == 0) View.GONE else View.VISIBLE)
-                        root.addView(R.id.widget_rows, header)
-                        rows++
-                        for (row in section.rows) {
-                            if (rows >= MAX_ROWS) break
-                            root.addView(R.id.widget_rows, rowView(context, pkg, row))
-                            rows++
-                        }
-                    }
-                } else {
-                    sections.take(MAX_CARDS).forEach { root.addView(R.id.widget_rows, cardView(context, pkg, it)) }
-                }
+            // 區塊交給可捲動的清單（QuotaWidgetService）產生；沒有資料時顯示提示文字
+            val adapter = Intent(context, QuotaWidgetService::class.java).apply {
+                data = Uri.parse(toUri(Intent.URI_INTENT_SCHEME))
             }
+            root.setRemoteAdapter(R.id.widget_list, adapter)
+            root.setEmptyView(R.id.widget_list, R.id.widget_empty)
+            root.setViewVisibility(R.id.widget_empty, if (results.isEmpty()) View.VISIBLE else View.GONE)
 
             val openApp = PendingIntent.getActivity(
                 context, 0,
@@ -95,6 +78,13 @@ class QuotaWidgetProvider : AppWidgetProvider() {
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
             )
             root.setOnClickPendingIntent(R.id.widget_root, openApp)
+            // 清單裡每個區塊點下去也打開 App（Android 12+ 的範本必須是 MUTABLE 才能帶入 fill-in）
+            val template = PendingIntent.getActivity(
+                context, 4,
+                Intent(context, MainActivity::class.java),
+                PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
+            root.setPendingIntentTemplate(R.id.widget_list, template)
 
             val refresh = PendingIntent.getBroadcast(
                 context, 1,
@@ -105,12 +95,11 @@ class QuotaWidgetProvider : AppWidgetProvider() {
             return root
         }
 
-        /** 小工具上的一列（已整理好要顯示的文字） */
         /**
          * 小工具上的一列（已整理好要顯示的文字）。
          * amount = 金額／容量（例如「$10.41 / $20」）；hint = 補充（預估月底、重置時間）。
          */
-        private data class WidgetRow(
+        internal data class WidgetRow(
             val label: String,
             val percent: Double?,
             val value: String,
@@ -119,7 +108,7 @@ class QuotaWidgetProvider : AppWidgetProvider() {
             val hint: String = "",
         )
 
-        private data class Section(val title: String, val rows: List<WidgetRow>)
+        internal data class Section(val title: String, val rows: List<WidgetRow>)
 
         /**
          * 把抓取結果整理成小工具的區塊：
@@ -127,7 +116,7 @@ class QuotaWidgetProvider : AppWidgetProvider() {
          * - 讀取失敗只顯示一行「⚠ 讀取失敗・點開查看」，不塞長錯誤訊息
          * - Supabase 多個專案合成一個區塊：用量 ≥ 50% 才列出，其餘收成一行摘要
          */
-        private fun widgetSections(results: List<ProviderResult>, vis: Map<String, Boolean>): List<Section> {
+        internal fun widgetSections(results: List<ProviderResult>, vis: Map<String, Boolean>): List<Section> {
             val sections = mutableListOf<Section>()
             val supabase = results.filter { it.id.startsWith("supabase") }
             var supabaseAdded = false
@@ -148,6 +137,30 @@ class QuotaWidgetProvider : AppWidgetProvider() {
                 if (rows.isNotEmpty()) sections += Section(r.name, rows)
             }
             return sections
+        }
+
+        /** 清單服務呼叫：目前要顯示的所有區塊 */
+        internal fun currentSections(context: Context): List<Section> {
+            val results = ResultCache.load(context)
+            return if (results.isEmpty()) emptyList() else widgetSections(results, WidgetVisibility.load(context))
+        }
+
+        /** 清單服務呼叫：依樣式畫出第 index 個區塊，整塊可點擊打開 App */
+        internal fun sectionView(context: Context, index: Int, section: Section, styleA: Boolean): RemoteViews {
+            val pkg = context.packageName
+            val v = if (styleA) {
+                val block = RemoteViews(pkg, R.layout.widget_section_a)
+                val header = RemoteViews(pkg, R.layout.widget_header_row)
+                header.setTextViewText(R.id.header_text, section.title)
+                header.setViewVisibility(R.id.header_divider, if (index == 0) View.GONE else View.VISIBLE)
+                block.addView(R.id.section_root, header)
+                section.rows.forEach { block.addView(R.id.section_root, rowView(context, pkg, it)) }
+                block
+            } else {
+                cardView(context, pkg, section)
+            }
+            v.setOnClickFillInIntent(R.id.section_root, Intent())
+            return v
         }
 
         private fun supabaseSection(results: List<ProviderResult>, vis: Map<String, Boolean>): Section {

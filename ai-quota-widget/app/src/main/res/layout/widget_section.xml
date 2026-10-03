@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- 方案 B：每個來源一張淺底小卡，標題是灰色小字標籤 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/section_root"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:paddingTop="8dp">

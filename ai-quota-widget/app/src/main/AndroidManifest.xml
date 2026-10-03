@@ -43,6 +43,11 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <service
+            android:name=".widget.QuotaWidgetService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
+
         <receiver
             android:name=".widget.QuotaWidgetProvider"
             android:exported="true"
