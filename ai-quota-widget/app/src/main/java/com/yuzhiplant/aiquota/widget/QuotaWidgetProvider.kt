@@ -65,8 +65,9 @@ class QuotaWidgetProvider : AppWidgetProvider() {
             )
 
             // 區塊交給可捲動的清單（QuotaWidgetService）產生；沒有資料時顯示提示文字
+            // 每次更新給不同的網址：小工具會整份重建清單，排序／顯示設定改了立刻生效，也不會沿用舊版面
             val adapter = Intent(context, QuotaWidgetService::class.java).apply {
-                data = Uri.parse(toUri(Intent.URI_INTENT_SCHEME))
+                data = Uri.parse("aiquota://widget/list/${System.currentTimeMillis()}")
             }
             root.setRemoteAdapter(R.id.widget_list, adapter)
             root.setEmptyView(R.id.widget_list, R.id.widget_empty)
