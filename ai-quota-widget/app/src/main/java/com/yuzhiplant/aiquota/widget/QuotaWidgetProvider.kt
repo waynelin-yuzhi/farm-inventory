@@ -150,6 +150,7 @@ class QuotaWidgetProvider : AppWidgetProvider() {
             val pkg = context.packageName
             val v = if (styleA) {
                 val block = RemoteViews(pkg, R.layout.widget_section_a)
+                block.removeAllViews(R.id.section_root)
                 val header = RemoteViews(pkg, R.layout.widget_header_row)
                 header.setTextViewText(R.id.header_text, section.title)
                 header.setViewVisibility(R.id.header_divider, if (index == 0) View.GONE else View.VISIBLE)
@@ -230,6 +231,8 @@ class QuotaWidgetProvider : AppWidgetProvider() {
          */
         private fun cardView(context: Context, pkg: String, section: Section): RemoteViews {
             val card = RemoteViews(pkg, R.layout.widget_section)
+            // 捲動清單會重複使用舊版面：先清空，否則每次更新都會再疊一份
+            card.removeAllViews(R.id.section_body)
             card.setTextViewText(R.id.section_title, section.title.uppercase())
             val gauges = section.rows.filter { it.percent != null }
             if (gauges.size == 1) {
