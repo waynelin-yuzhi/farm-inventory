@@ -18,19 +18,21 @@ object QuotaRepository {
 
     /**
      * 平行抓取所有已設定的來源，存快取並刷新桌面小工具。
-     * 顯示順序即重要順序：API 花費 → Claude App 模型用量 → Voyage 花費 → Supabase → LINE → Drive → 自訂。
+     * 顯示順序即重要順序：Claude API 花費 → Claude App 模型用量 → OpenAI API 花費 → ChatGPT（Codex）→ Voyage 花費 → Supabase → LINE → Drive → 自訂。
      */
     suspend fun refreshAll(context: Context): List<ProviderResult> = withContext(Dispatchers.IO) {
         val settings = Settings(context)
         val results = coroutineScope {
             val api = async { ClaudeApiProvider.fetch(settings) }
             val subscription = async { ClaudeSubscriptionProvider.fetch(context, settings) }
+            val openai = async { OpenAiApiProvider.fetch(settings) }
+            val chatgpt = async { ChatGptProvider.fetch(context, settings) }
             val voyage = async { VoyageProvider.fetch(settings) }
             val supabase = async { SupabaseProvider.fetch(settings) }
             val line = async { LineProvider.fetch(settings) }
             val drive = async { DriveProvider.fetch(settings) }
             val custom = settings.customSources.map { src -> async { CustomJsonProvider.fetch(src) } }
-            listOfNotNull(api.await(), subscription.await(), voyage.await()) +
+            listOfNotNull(api.await(), subscription.await(), openai.await(), chatgpt.await(), voyage.await()) +
                 supabase.await() + listOfNotNull(line.await(), drive.await()) + custom.awaitAll()
         }
         ResultCache.save(context, results)

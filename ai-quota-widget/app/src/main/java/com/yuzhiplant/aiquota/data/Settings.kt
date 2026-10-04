@@ -94,6 +94,38 @@ class Settings(context: Context) {
         get() = prefs.getBoolean(KEY_API_BALANCE_PENDING, false)
         set(v) = prefs.edit().putBoolean(KEY_API_BALANCE_PENDING, v).apply()
 
+    /** OpenAI Admin key（sk-admin- 開頭），讀 Costs API 用 */
+    var openaiAdminKey: String
+        get() = prefs.getString(KEY_OPENAI_ADMIN, "") ?: ""
+        set(v) = prefs.edit().putString(KEY_OPENAI_ADMIN, v.trim()).apply()
+
+    /** OpenAI API 每月預算（美元），0 表示未設定 */
+    var openaiMonthlyBudget: Double
+        get() = prefs.getString(KEY_OPENAI_BUDGET, "0")?.toDoubleOrNull() ?: 0.0
+        set(v) = prefs.edit().putString(KEY_OPENAI_BUDGET, v.toString()).apply()
+
+    /** OpenAI 儲值餘額推算，邏輯同 Claude API（基準以美元記） */
+    var openaiBalance: Double
+        get() = prefs.getString(KEY_OPENAI_BALANCE, "0")?.toDoubleOrNull() ?: 0.0
+        set(v) = prefs.edit().putString(KEY_OPENAI_BALANCE, v.toString()).apply()
+
+    var openaiBalanceDate: String
+        get() = prefs.getString(KEY_OPENAI_BALANCE_DATE, "") ?: ""
+        set(v) = prefs.edit().putString(KEY_OPENAI_BALANCE_DATE, v).apply()
+
+    var openaiBalanceBaseline: Double
+        get() = prefs.getString(KEY_OPENAI_BALANCE_BASE, "0")?.toDoubleOrNull() ?: 0.0
+        set(v) = prefs.edit().putString(KEY_OPENAI_BALANCE_BASE, v.toString()).apply()
+
+    var openaiBalancePending: Boolean
+        get() = prefs.getBoolean(KEY_OPENAI_BALANCE_PENDING, false)
+        set(v) = prefs.edit().putBoolean(KEY_OPENAI_BALANCE_PENDING, v).apply()
+
+    /** chatgpt.com 的 __Secure-next-auth.session-token（或整段 Cookie） */
+    var chatgptSessionToken: String
+        get() = prefs.getString(KEY_CHATGPT_TOKEN, "") ?: ""
+        set(v) = prefs.edit().putString(KEY_CHATGPT_TOKEN, cleanChatgptToken(v)).apply()
+
     var refreshMinutes: Int
         get() = prefs.getInt(KEY_INTERVAL, 30)
         set(v) = prefs.edit().putInt(KEY_INTERVAL, v.coerceAtLeast(15)).apply()
@@ -121,6 +153,18 @@ class Settings(context: Context) {
             return v.filterNot { it.isWhitespace() }.trim('"', '\'', ';')
         }
 
+        /**
+         * 只貼值時保持原樣；貼「名稱=值」或整段 Cookie（Token 太長被拆成 .0 / .1 時）
+         * 只留 session-token 相關的 cookie。
+         */
+        fun cleanChatgptToken(raw: String): String {
+            val v = raw.trim().trim('"', '\'').replace("\n", "").replace("\r", "")
+            if (!v.contains("session-token")) return v.filterNot { it.isWhitespace() }.trim(';')
+            return v.split(';').map { it.trim() }
+                .filter { it.substringBefore('=').contains("session-token") }
+                .joinToString("; ")
+        }
+
         private const val FILE = "secure_settings"
         private const val KEY_SESSION = "claude_session_key"
         private const val KEY_ORG = "claude_org_id"
@@ -139,6 +183,13 @@ class Settings(context: Context) {
         private const val KEY_API_BALANCE_DATE = "api_balance_date"
         private const val KEY_API_BALANCE_BASE = "api_balance_baseline_cents"
         private const val KEY_API_BALANCE_PENDING = "api_balance_pending"
+        private const val KEY_OPENAI_ADMIN = "openai_admin_key"
+        private const val KEY_OPENAI_BUDGET = "openai_monthly_budget"
+        private const val KEY_OPENAI_BALANCE = "openai_balance"
+        private const val KEY_OPENAI_BALANCE_DATE = "openai_balance_date"
+        private const val KEY_OPENAI_BALANCE_BASE = "openai_balance_baseline"
+        private const val KEY_OPENAI_BALANCE_PENDING = "openai_balance_pending"
+        private const val KEY_CHATGPT_TOKEN = "chatgpt_session_token"
         private const val KEY_INTERVAL = "refresh_minutes"
         private const val KEY_CUSTOM = "custom_sources"
 

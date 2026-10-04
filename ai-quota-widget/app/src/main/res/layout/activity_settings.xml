@@ -127,6 +127,126 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="24dp"
+                    android:text="OpenAI API 花費"
+                    android:textColor="@color/brand"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="顯示本月花費與估計剩餘儲值。到 platform.openai.com → Settings → Organization → Admin keys 建立 Admin key（sk-admin 開頭，需組織 Owner 權限）。一般的 API key 讀不到花費。"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:hint="OpenAI Admin key"
+                    app:endIconMode="password_toggle">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/input_openai_key"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textPassword" />
+                </com.google.android.material.textfield.TextInputLayout>
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:hint="目前儲值餘額（美元）"
+                    app:helperText="到 platform.openai.com → Settings → Billing 看「Credit balance」填入；App 會自動扣掉之後的花費。儲值後再更新一次">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/input_openai_balance"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="numberDecimal" />
+                </com.google.android.material.textfield.TextInputLayout>
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:hint="每月預算（美元）"
+                    app:helperText="達 80％、100％ 會推播提醒；留空則只顯示金額">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/input_openai_budget"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="numberDecimal" />
+                </com.google.android.material.textfield.TextInputLayout>
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="ChatGPT 訂閱（Codex）"
+                    android:textColor="@color/brand"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="顯示 Codex 的 5 小時與每週用量 %（ChatGPT 一般對話的訊息上限，OpenAI 沒有任何地方可以查）。電腦瀏覽器登入 chatgpt.com → F12 開發者工具 → Application → Cookies → chatgpt.com → 複製 __Secure-next-auth.session-token 的值。若看到 .0 和 .1 兩個，請把兩行都複製後一起貼上（格式：名稱=值; 名稱=值）。"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:hint="session token"
+                    app:helperText="等同登入狀態，請勿分享給任何人"
+                    app:endIconMode="password_toggle">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/input_chatgpt_token"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textPassword" />
+                </com.google.android.material.textfield.TextInputLayout>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_copy_chatgpt_raw"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="複製用量原始資料（除錯用）" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="Gemini"
+                    android:textColor="@color/brand"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Google 沒有提供可查詢 Gemini App 用量或 Gemini API 花費的接口，所以無法放上小工具。Gemini API 建議到 AI Studio 或 Google Cloud 帳單設定「預算上限／花費上限」，超過會提醒或自動停用，比監看更保險。下方按鈕可直接開啟用量頁。"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_open_gemini_usage"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="開啟 Gemini App 用量頁" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_open_aistudio"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="開啟 AI Studio 用量頁" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
                     android:text="Voyage AI 花費"
                     android:textColor="@color/brand"
                     android:textSize="15sp"

@@ -28,6 +28,8 @@ object CredentialAlerts {
     private fun whatToRenew(groupKey: String, name: String): String = when (groupKey) {
         "claude_subscription" -> "Claude App 的 sessionKey 已失效"
         "claude_api" -> "Claude API 的 Admin key 失效"
+        "openai_api" -> "OpenAI API 的 Admin key 失效"
+        "chatgpt" -> "ChatGPT 的 session token 已失效"
         "supabase" -> "Supabase Access token 失效"
         "line" -> "LINE Channel access token 失效"
         "google_drive" -> "Google Drive 小程式網址失效"

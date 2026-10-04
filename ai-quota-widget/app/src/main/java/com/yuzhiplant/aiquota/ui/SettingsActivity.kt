@@ -2,6 +2,8 @@ package com.yuzhiplant.aiquota.ui
 
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.widget.CheckBox
@@ -18,6 +20,7 @@ import com.yuzhiplant.aiquota.R
 import com.yuzhiplant.aiquota.data.Settings
 import com.yuzhiplant.aiquota.data.UpdateChecker
 import com.yuzhiplant.aiquota.model.CustomSource
+import com.yuzhiplant.aiquota.providers.ChatGptProvider
 import com.yuzhiplant.aiquota.providers.ClaudeSubscriptionProvider
 import com.yuzhiplant.aiquota.providers.DriveProvider
 import com.yuzhiplant.aiquota.providers.SupabaseProvider
@@ -38,6 +41,10 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var budget: TextInputEditText
     private lateinit var balance: TextInputEditText
     private lateinit var interval: TextInputEditText
+    private lateinit var openaiKey: TextInputEditText
+    private lateinit var openaiBalance: TextInputEditText
+    private lateinit var openaiBudget: TextInputEditText
+    private lateinit var chatgptToken: TextInputEditText
     private lateinit var voyageId: TextInputEditText
     private lateinit var voyageSecret: TextInputEditText
     private lateinit var voyageOrg: TextInputEditText
@@ -61,6 +68,10 @@ class SettingsActivity : AppCompatActivity() {
         budget = findViewById(R.id.input_budget)
         balance = findViewById(R.id.input_balance)
         interval = findViewById(R.id.input_interval)
+        openaiKey = findViewById(R.id.input_openai_key)
+        openaiBalance = findViewById(R.id.input_openai_balance)
+        openaiBudget = findViewById(R.id.input_openai_budget)
+        chatgptToken = findViewById(R.id.input_chatgpt_token)
         customList = findViewById(R.id.custom_list)
         voyageId = findViewById(R.id.input_voyage_id)
         voyageSecret = findViewById(R.id.input_voyage_secret)
@@ -76,6 +87,10 @@ class SettingsActivity : AppCompatActivity() {
         settings.apiMonthlyBudget.takeIf { it > 0 }?.let { budget.setText(trimNumber(it)) }
         settings.apiBalance.takeIf { it > 0 }?.let { balance.setText(trimNumber(it)) }
         interval.setText(settings.refreshMinutes.toString())
+        openaiKey.setText(settings.openaiAdminKey)
+        settings.openaiBalance.takeIf { it > 0 }?.let { openaiBalance.setText(trimNumber(it)) }
+        settings.openaiMonthlyBudget.takeIf { it > 0 }?.let { openaiBudget.setText(trimNumber(it)) }
+        chatgptToken.setText(settings.chatgptSessionToken)
         voyageId.setText(settings.voyageClientId)
         voyageSecret.setText(settings.voyageClientSecret)
         voyageOrg.setText(settings.voyageOrgId)
@@ -115,6 +130,18 @@ class SettingsActivity : AppCompatActivity() {
                 Toast.makeText(this, "已複製，直接貼給 Claude 就好（只有用量數字，不含金鑰）", Toast.LENGTH_LONG).show()
             }
         }
+        findViewById<MaterialButton>(R.id.btn_copy_chatgpt_raw).setOnClickListener {
+            val raw = ChatGptProvider.lastRaw(this)
+            if (raw.isEmpty()) {
+                Toast.makeText(this, "還沒有資料，請先回首頁下拉更新一次", Toast.LENGTH_LONG).show()
+            } else {
+                getSystemService(ClipboardManager::class.java)
+                    .setPrimaryClip(ClipData.newPlainText("ChatGPT 用量原始資料", raw))
+                Toast.makeText(this, "已複製，直接貼給 Claude 就好（只有用量數字，不含金鑰）", Toast.LENGTH_LONG).show()
+            }
+        }
+        findViewById<MaterialButton>(R.id.btn_open_gemini_usage).setOnClickListener { openUrl("https://gemini.google.com/usage") }
+        findViewById<MaterialButton>(R.id.btn_open_aistudio).setOnClickListener { openUrl("https://aistudio.google.com/usage") }
         // 小工具樣式：選了就立即套用，不用按儲存
         val styleGroup = findViewById<RadioGroup>(R.id.widget_style_group)
         styleGroup.check(if (settings.widgetStyle == "A") R.id.widget_style_a else R.id.widget_style_b)
@@ -145,6 +172,16 @@ class SettingsActivity : AppCompatActivity() {
             settings.apiBalanceBaselineCents = 0.0
             settings.apiBalancePending = newBalance > 0
         }
+        settings.openaiAdminKey = openaiKey.text?.toString().orEmpty()
+        settings.openaiMonthlyBudget = openaiBudget.text?.toString()?.toDoubleOrNull() ?: 0.0
+        val newOpenaiBalance = openaiBalance.text?.toString()?.toDoubleOrNull() ?: 0.0
+        if (newOpenaiBalance != settings.openaiBalance) {
+            settings.openaiBalance = newOpenaiBalance
+            settings.openaiBalanceDate = java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString()
+            settings.openaiBalanceBaseline = 0.0
+            settings.openaiBalancePending = newOpenaiBalance > 0
+        }
+        settings.chatgptSessionToken = chatgptToken.text?.toString().orEmpty()
         settings.voyageClientId = voyageId.text?.toString().orEmpty()
         settings.voyageClientSecret = voyageSecret.text?.toString().orEmpty()
         settings.voyageOrgId = voyageOrg.text?.toString().orEmpty()
@@ -158,6 +195,14 @@ class SettingsActivity : AppCompatActivity() {
         if (settings.refreshMinutes != oldInterval) RefreshScheduler.ensurePeriodic(this, replace = true)
         Toast.makeText(this, "已儲存", Toast.LENGTH_SHORT).show()
         finish()
+    }
+
+    private fun openUrl(url: String) {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        } catch (e: Exception) {
+            Toast.makeText(this, "找不到可開啟網頁的 App", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun updateProjectSummary() {

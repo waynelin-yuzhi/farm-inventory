@@ -24,7 +24,13 @@ object WebViewFetcher {
     private const val POLL_MS = 1_000L
 
     /** 回傳頁面內容（預期是 JSON 文字）；逾時丟出例外。 */
-    suspend fun fetch(context: Context, url: String, cookieDomain: String, cookie: String): String =
+    suspend fun fetch(
+        context: Context,
+        url: String,
+        cookieDomain: String,
+        cookie: String,
+        headers: Map<String, String> = emptyMap(),
+    ): String =
         withTimeoutOrNull(TIMEOUT_MS) {
             suspendCancellableCoroutine<String> { cont ->
                 val main = Handler(Looper.getMainLooper())
@@ -65,7 +71,10 @@ object WebViewFetcher {
                     try {
                         val cm = CookieManager.getInstance()
                         cm.setAcceptCookie(true)
-                        cm.setCookie(cookieDomain, "$cookie; path=/; secure")
+                        // 可能是多個 cookie（name=value; name2=value2），逐一寫入
+                        cookie.split(';').map { it.trim() }.filter { it.contains('=') }.forEach {
+                            cm.setCookie(cookieDomain, "$it; path=/; secure")
+                        }
                         cm.flush()
                         @SuppressLint("SetJavaScriptEnabled")
                         val wv = WebView(context.applicationContext)
@@ -81,7 +90,7 @@ object WebViewFetcher {
                             }
                         }
                         webView = wv
-                        wv.loadUrl(url)
+                        wv.loadUrl(url, headers)
                     } catch (e: Exception) {
                         finish(Result.failure(e))
                     }

@@ -97,7 +97,7 @@ object ClaudeApiProvider {
                     settings.apiBalanceBaselineCents = anchorDayCents
                     settings.apiBalancePending = false
                 }
-                items += balanceItem(balance, anchorStr, (sinceAnchorCents - settings.apiBalanceBaselineCents) / 100)
+                items += MonthlyCost.balanceItem(balance, anchorStr, (sinceAnchorCents - settings.apiBalanceBaselineCents) / 100, "Console")
             }
             val spent = monthCents / 100
             items += MonthlyCost.items(spent, settings.apiMonthlyBudget)
@@ -118,30 +118,6 @@ object ClaudeApiProvider {
         } catch (e: Exception) {
             ProviderResult(ID, NAME, emptyList(), "讀取失敗：${e.message ?: e.javaClass.simpleName}", now)
         }
-    }
-
-    /** 估計剩餘儲值：填入的餘額 − 之後的花費，並依平均每日花費推估還能用幾天 */
-    private fun balanceItem(balance: Double, anchorStr: String, spentSince: Double): QuotaItem {
-        val spent = spentSince.coerceAtLeast(0.0)
-        val remaining = balance - spent
-        val anchor = java.time.LocalDate.parse(anchorStr)
-        val days = ChronoUnit.HOURS.between(anchor.atStartOfDay(ZoneOffset.UTC), ZonedDateTime.now(ZoneOffset.UTC)) / 24.0
-        val perDay = if (days >= 1) spent / days else 0.0
-        val daysLeft = if (perDay > 0 && remaining > 0) (remaining / perDay).toInt() else -1
-        val hint = when {
-            remaining <= 0 -> "可能已用完，請到 Console 確認"
-            daysLeft >= 0 -> "照目前速度約可再用 $daysLeft 天"
-            else -> ""
-        }
-        val since = "${anchor.monthValue}/${anchor.dayOfMonth} 起"
-        return QuotaItem(
-            label = "估計剩餘儲值",
-            percent = (spent / balance * 100).coerceAtMost(100.0),
-            detail = listOf("剩 ${Format.usd(remaining.coerceAtLeast(0.0))} / ${Format.usdShort(balance)}", "$since 已用 ${Format.usd(spent)}", hint)
-                .filter { it.isNotEmpty() }.joinToString("・"),
-            shortDetail = "剩 ${Format.usd(remaining.coerceAtLeast(0.0))} / ${Format.usdShort(balance)}",
-            hint = hint,
-        )
     }
 
     /** Anthropic 錯誤格式：{"type":"error","error":{"message":"…"}} */
