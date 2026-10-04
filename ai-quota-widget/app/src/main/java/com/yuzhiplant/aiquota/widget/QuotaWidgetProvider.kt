@@ -25,6 +25,8 @@ class QuotaWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
         ids.forEach { manager.updateAppWidget(it, buildViews(context, refreshing = false)) }
+        @Suppress("DEPRECATION")
+        manager.notifyAppWidgetViewDataChanged(ids, R.id.widget_list)
         RefreshScheduler.ensurePeriodic(context)
     }
 
@@ -75,7 +77,7 @@ class QuotaWidgetProvider : AppWidgetProvider() {
             // 有資料但全部被設成不顯示時，提示文字要說清楚
             root.setTextViewText(
                 R.id.widget_empty,
-                if (results.isEmpty()) "點一下開啟 App 設定來源" else "所有平台都設成不顯示，可在 App「排序與顯示」打開",
+                if (results.isEmpty()) "點一下開啟 App 設定來源" else "沒有要顯示的項目，可在 App「排序與顯示」調整",
             )
 
             val openApp = PendingIntent.getActivity(
