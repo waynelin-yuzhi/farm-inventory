@@ -30,11 +30,11 @@ class QuotaWidgetService : RemoteViewsService() {
 
         override fun getViewAt(position: Int): RemoteViews =
             sections.getOrNull(position)?.let { QuotaWidgetProvider.sectionView(context, position, it, styleA) }
-                ?: RemoteViews(context.packageName, R.layout.widget_section_a)
+                ?: RemoteViews(context.packageName, R.layout.widget_section_a).apply { removeAllViews(R.id.section_root) }
 
         override fun getLoadingView(): RemoteViews? = null
 
-        // 兩種樣式各自的區塊外框不同；子項目數量不一，所以每列都視為獨立樣式
+        // 兩種外框版面：widget_section（B）與 widget_section_a（A，也用於備用空白項）
         override fun getViewTypeCount() = 2
 
         override fun getItemId(position: Int) = position.toLong()

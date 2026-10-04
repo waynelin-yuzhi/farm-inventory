@@ -65,13 +65,18 @@ class QuotaWidgetProvider : AppWidgetProvider() {
             )
 
             // 區塊交給可捲動的清單（QuotaWidgetService）產生；沒有資料時顯示提示文字
-            // 每次更新給不同的網址：小工具會整份重建清單，排序／顯示設定改了立刻生效，也不會沿用舊版面
+            // 固定網址：資料更新靠下方 notifyAppWidgetViewDataChanged（每次換網址會累積占用記憶體、捲動位置跳回頂端）
             val adapter = Intent(context, QuotaWidgetService::class.java).apply {
-                data = Uri.parse("aiquota://widget/list/${System.currentTimeMillis()}")
+                data = Uri.parse("aiquota://widget/list")
             }
             root.setRemoteAdapter(R.id.widget_list, adapter)
             root.setEmptyView(R.id.widget_list, R.id.widget_empty)
             root.setViewVisibility(R.id.widget_empty, if (results.isEmpty()) View.VISIBLE else View.GONE)
+            // 有資料但全部被設成不顯示時，提示文字要說清楚
+            root.setTextViewText(
+                R.id.widget_empty,
+                if (results.isEmpty()) "點一下開啟 App 設定來源" else "所有平台都設成不顯示，可在 App「排序與顯示」打開",
+            )
 
             val openApp = PendingIntent.getActivity(
                 context, 0,
