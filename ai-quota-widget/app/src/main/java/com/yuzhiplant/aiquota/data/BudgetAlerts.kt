@@ -31,7 +31,7 @@ object BudgetAlerts {
     private const val PREFS = "budget_alerts"
     /** 來源 ID → 要監看的項目名稱開頭 */
     private val WATCHED = mapOf(
-        ClaudeApiProvider.ID to listOf("估計剩餘儲值", "本月花費"),
+        ClaudeApiProvider.ID to listOf("Max 贈送額度", "估計剩餘儲值", "本月花費"),
         OpenAiApiProvider.ID to listOf("估計剩餘儲值", "本月花費"),
         VoyageProvider.ID to listOf("本月花費"),
         LineProvider.ID to listOf("本月訊息"),
@@ -56,13 +56,17 @@ object BudgetAlerts {
             for (prefix in prefixes) {
                 val item = r.items.firstOrNull { it.label.startsWith(prefix) } ?: continue
                 val pct = item.percent ?: continue
-                val key = "${r.id}_${prefix}_$month"
+                // 有重置時間的（Max 贈送額度依扣款日重置）以週期為單位，其餘以日曆月
+                val period = if (item.resetAt > 0) item.resetAt.toString() else month
+                val key = "${r.id}_${prefix}_$period"
                 val notified = prefs.getInt(key, 0)
                 val hit = THRESHOLDS.firstOrNull { pct >= it } ?: continue
                 if (hit <= notified) continue
                 prefs.edit().putInt(key, hit).apply()
                 val service = r.name.removeSuffix(" 花費")
                 val title = when {
+                    prefix == "Max 贈送額度" && hit >= 100 -> "Max 贈送的 API 額度已用完，開始扣儲值"
+                    prefix == "Max 贈送額度" -> "Max 贈送的 API 額度已用 ${Format.percent(pct)}"
                     prefix == "估計剩餘儲值" && hit >= 100 -> "$service 儲值可能已用完"
                     prefix == "估計剩餘儲值" -> "$service 儲值已用 ${Format.percent(pct)}"
                     prefix == "本月花費" && hit >= 100 -> "${r.name} 本月已超過預算"

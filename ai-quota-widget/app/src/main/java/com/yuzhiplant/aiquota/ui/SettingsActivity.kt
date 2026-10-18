@@ -40,6 +40,8 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var adminKey: TextInputEditText
     private lateinit var budget: TextInputEditText
     private lateinit var balance: TextInputEditText
+    private lateinit var creditDay: TextInputEditText
+    private lateinit var creditGroup: RadioGroup
     private lateinit var interval: TextInputEditText
     private lateinit var openaiKey: TextInputEditText
     private lateinit var openaiBalance: TextInputEditText
@@ -67,6 +69,8 @@ class SettingsActivity : AppCompatActivity() {
         adminKey = findViewById(R.id.input_admin_key)
         budget = findViewById(R.id.input_budget)
         balance = findViewById(R.id.input_balance)
+        creditDay = findViewById(R.id.input_credit_day)
+        creditGroup = findViewById(R.id.api_credit_group)
         interval = findViewById(R.id.input_interval)
         openaiKey = findViewById(R.id.input_openai_key)
         openaiBalance = findViewById(R.id.input_openai_balance)
@@ -86,6 +90,14 @@ class SettingsActivity : AppCompatActivity() {
         adminKey.setText(settings.anthropicAdminKey)
         settings.apiMonthlyBudget.takeIf { it > 0 }?.let { budget.setText(trimNumber(it)) }
         settings.apiBalance.takeIf { it > 0 }?.let { balance.setText(trimNumber(it)) }
+        creditGroup.check(
+            when {
+                settings.apiMonthlyCredit >= 200 -> R.id.api_credit_200
+                settings.apiMonthlyCredit > 0 -> R.id.api_credit_100
+                else -> R.id.api_credit_none
+            },
+        )
+        settings.apiCreditResetDay.takeIf { it > 0 }?.let { creditDay.setText(it.toString()) }
         interval.setText(settings.refreshMinutes.toString())
         openaiKey.setText(settings.openaiAdminKey)
         settings.openaiBalance.takeIf { it > 0 }?.let { openaiBalance.setText(trimNumber(it)) }
@@ -164,6 +176,12 @@ class SettingsActivity : AppCompatActivity() {
         settings.claudeSessionKey = newSession
         settings.anthropicAdminKey = adminKey.text?.toString().orEmpty()
         settings.apiMonthlyBudget = budget.text?.toString()?.toDoubleOrNull() ?: 0.0
+        settings.apiMonthlyCredit = when (creditGroup.checkedRadioButtonId) {
+            R.id.api_credit_200 -> 200.0
+            R.id.api_credit_100 -> 100.0
+            else -> 0.0
+        }
+        settings.apiCreditResetDay = creditDay.text?.toString()?.toIntOrNull() ?: 0
         // 餘額有變才重新起算（填入當天為起點，下一次更新時記下當天已花的金額當基準）
         val newBalance = balance.text?.toString()?.toDoubleOrNull() ?: 0.0
         if (newBalance != settings.apiBalance) {

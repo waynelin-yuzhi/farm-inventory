@@ -94,13 +94,74 @@
                         android:layout_height="wrap_content"
                         android:inputType="textPassword" />
                 </com.google.android.material.textfield.TextInputLayout>
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="Max 方案每月贈送的 API 額度"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="贈送額度會先於儲值使用，每期未用完不保留；超出的部分才從儲值扣。需先在 claude.ai → 設定 → 帳單 把 Console 組織連結到 Max 方案領取（Pro 方案沒有）。"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+
+                <RadioGroup
+                    android:id="@+id/api_credit_group"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:orientation="vertical">
+
+                    <RadioButton
+                        android:id="@+id/api_credit_none"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
+                        android:text="沒有（Pro 或未領取）" />
+
+                    <RadioButton
+                        android:id="@+id/api_credit_100"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
+                        android:text="Max 5x・每月 $100" />
+
+                    <RadioButton
+                        android:id="@+id/api_credit_200"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
+                        android:text="Max 20x・每月 $200" />
+                </RadioGroup>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:hint="贈送額度重置日（每月幾號）"
+                    app:helperText="就是 Max 的扣款日：claude.ai → 設定 → 帳單 看「下次付款日」，填「日」即可，例如 15">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/input_credit_day"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="number"
+                        android:maxLength="2" />
+                </com.google.android.material.textfield.TextInputLayout>
+
                 <com.google.android.material.textfield.TextInputLayout
                     style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:hint="目前儲值餘額（美元）"
-                    app:helperText="到 console.anthropic.com → Settings → Billing 看「Credit balance」填入；App 會自動扣掉之後的花費。儲值後再更新一次">
+                    app:helperText="到 console.anthropic.com → Settings → Billing 看「Credit balance」填入，只填自己儲值的部分（不含 Max 贈送額度）；App 會自動扣掉之後的花費。儲值後再更新一次">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/input_balance"

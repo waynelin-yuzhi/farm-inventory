@@ -30,6 +30,16 @@ class Settings(context: Context) {
         get() = prefs.getString(KEY_BUDGET, "0")?.toDoubleOrNull() ?: 0.0
         set(v) = prefs.edit().putString(KEY_BUDGET, v.toString()).apply()
 
+    /** Max 方案每月贈送的 Claude API 額度（美元）：0 = 沒有、100 = Max 5x、200 = Max 20x */
+    var apiMonthlyCredit: Double
+        get() = prefs.getString(KEY_API_CREDIT, "0")?.toDoubleOrNull() ?: 0.0
+        set(v) = prefs.edit().putString(KEY_API_CREDIT, v.toString()).apply()
+
+    /** 贈送額度的重置日＝Max 訂閱的扣款日（1–31），0 表示未填（以每月 1 號計） */
+    var apiCreditResetDay: Int
+        get() = prefs.getInt(KEY_API_CREDIT_DAY, 0)
+        set(v) = prefs.edit().putInt(KEY_API_CREDIT_DAY, if (v in 1..31) v else 0).apply()
+
     /** MongoDB Atlas 服務帳號（Voyage AI 帳單用）：Client ID / Secret / 組織 ID */
     var voyageClientId: String
         get() = prefs.getString(KEY_VOYAGE_ID, "") ?: ""
@@ -170,6 +180,8 @@ class Settings(context: Context) {
         private const val KEY_ORG = "claude_org_id"
         private const val KEY_ADMIN = "anthropic_admin_key"
         private const val KEY_BUDGET = "api_monthly_budget"
+        private const val KEY_API_CREDIT = "api_monthly_credit"
+        private const val KEY_API_CREDIT_DAY = "api_credit_reset_day"
         private const val KEY_VOYAGE_ID = "voyage_client_id"
         private const val KEY_VOYAGE_SECRET = "voyage_client_secret"
         private const val KEY_VOYAGE_ORG = "voyage_org_id"
