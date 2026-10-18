@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 兩格並排：大百分比、進度條、名稱、重置時間 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingTop="4dp">
+
+    <LinearLayout
+        android:id="@+id/cell1"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/cell1_pct"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_primary"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+            <FrameLayout
+                android:id="@+id/cell1_bar_frame"
+                android:layout_width="match_parent"
+                android:layout_height="6dp"
+                android:layout_marginTop="4dp">
+    
+                <ProgressBar android:id="@+id/cell1_bar_ok" style="@android:style/Widget.ProgressBar.Horizontal"
+                    android:layout_width="match_parent" android:layout_height="6dp" android:max="100"
+                    android:progressDrawable="@drawable/bar_ok" />
+                <ProgressBar android:id="@+id/cell1_bar_warn" style="@android:style/Widget.ProgressBar.Horizontal"
+                    android:layout_width="match_parent" android:layout_height="6dp" android:max="100"
+                    android:progressDrawable="@drawable/bar_warn" android:visibility="gone" />
+                <ProgressBar android:id="@+id/cell1_bar_bad" style="@android:style/Widget.ProgressBar.Horizontal"
+                    android:layout_width="match_parent" android:layout_height="6dp" android:max="100"
+                    android:progressDrawable="@drawable/bar_bad" android:visibility="gone" />
+            </FrameLayout>
+
+        <TextView
+            android:id="@+id/cell1_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/text_primary"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/cell1_detail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/text_secondary"
+            android:textSize="10sp" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="12dp"
+        android:layout_height="1dp" />
+
+    <LinearLayout
+        android:id="@+id/cell2"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/cell2_pct"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_primary"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+            <FrameLayout
+                android:id="@+id/cell2_bar_frame"
+                android:layout_width="match_parent"
+                android:layout_height="6dp"
+                android:layout_marginTop="4dp">
+    
+                <ProgressBar android:id="@+id/cell2_bar_ok" style="@android:style/Widget.ProgressBar.Horizontal"
+                    android:layout_width="match_parent" android:layout_height="6dp" android:max="100"
+                    android:progressDrawable="@drawable/bar_ok" />
+                <ProgressBar android:id="@+id/cell2_bar_warn" style="@android:style/Widget.ProgressBar.Horizontal"
+                    android:layout_width="match_parent" android:layout_height="6dp" android:max="100"
+                    android:progressDrawable="@drawable/bar_warn" android:visibility="gone" />
+                <ProgressBar android:id="@+id/cell2_bar_bad" style="@android:style/Widget.ProgressBar.Horizontal"
+                    android:layout_width="match_parent" android:layout_height="6dp" android:max="100"
+                    android:progressDrawable="@drawable/bar_bad" android:visibility="gone" />
+            </FrameLayout>
+
+        <TextView
+            android:id="@+id/cell2_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/text_primary"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/cell2_detail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/text_secondary"
+            android:textSize="10sp" />
+    </LinearLayout>
+</LinearLayout>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AI 額度</string>
+    <string name="widget_name">AI 額度</string>
+    <string name="widget_desc">隨時查看 Claude 與各 AI 工具的使用額度</string>
+</resources>
